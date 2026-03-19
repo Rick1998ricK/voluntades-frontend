@@ -130,7 +130,9 @@ export default function EditVolunteerPage() {
       });
 
       if (sedeId) setModules(modulesRes.data.filter((m: any) => m.sede?.id === Number(sedeId)));
-      if (v.photoUrl) setPreview(`${process.env.NEXT_PUBLIC_API_URL}/${v.photoUrl}`);
+      if (v.photoUrl) setPreview(
+        v.photoUrl.startsWith("http") ? v.photoUrl : `${process.env.NEXT_PUBLIC_API_URL}/${v.photoUrl}`
+      );
 
       const members = mgmtRes.data ?? [];
       setManagementMembers(members);

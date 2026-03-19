@@ -5,9 +5,13 @@ import api from "@/lib/axios";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
-import {
-  Boxes, Users, Building2, ArrowLeft, Pencil,
-  ToggleLeft, ToggleRight, Trash2, AlertTriangle, Award, Calendar,
+import { 
+  Pencil, ToggleLeft, ToggleRight, AlertTriangle,
+  Building2, Boxes, Plus, ChevronDown, ChevronRight, ChevronLeft,
+  QrCode, Download, Key, CheckCircle, AlertCircle, User, Phone,
+  MapPin, Droplets, BookOpen, Calendar, ClipboardList, FileCheck,
+  Clock, XCircle, X, Search, UserCheck, CreditCard, ScanLine, Filter,
+  BarChart2, Award, CheckSquare, Square, Save, Trash2, Users2, AlignLeft, Box,
 } from "lucide-react";
 
 const BLUE   = "#2E6FA8";
@@ -87,7 +91,7 @@ export default function ModuleDetailPage() {
         style={{ color: "rgba(255,255,255,0.40)" }}
         onMouseEnter={e => (e.currentTarget.style.color = BLUE_L)}
         onMouseLeave={e => (e.currentTarget.style.color = "rgba(255,255,255,0.40)")}>
-        <ArrowLeft size={15} /> Volver
+        <ChevronLeft size={15} /> Volver
       </button>
 
       {/* HEADER */}
@@ -95,7 +99,7 @@ export default function ModuleDetailPage() {
         <div className="flex items-center gap-3 min-w-0">
           <div className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0"
             style={{ background: module.isActive ? "rgba(74,222,128,0.12)" : "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.08)" }}>
-            <Boxes size={22} color={module.isActive ? "#4ade80" : "rgba(255,255,255,0.30)"} />
+            <Box size={22} color={module.isActive ? "#4ade80" : "rgba(255,255,255,0.30)"} />
           </div>
           <div className="min-w-0">
             <h1 className="text-xl md:text-2xl font-bold truncate" style={{ color: "#f1f5f9", letterSpacing: "-0.3px" }}>
@@ -153,7 +157,7 @@ export default function ModuleDetailPage() {
           <div className="text-center">
             <p className="text-xs mb-1" style={{ color: "rgba(255,255,255,0.35)" }}>Voluntarios activos</p>
             <div className="flex items-center justify-center gap-1.5">
-              <Users size={14} color={ORANGE} />
+              <User size={14} color={ORANGE} />
               <p className="text-lg font-bold" style={{ color: ORANGE }}>{activeVolunteers.length}</p>
             </div>
           </div>
@@ -165,13 +169,13 @@ export default function ModuleDetailPage() {
         <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: "linear-gradient(90deg,#9b6dff,transparent)" }} />
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-semibold text-sm flex items-center gap-2" style={{ color: "rgba(255,255,255,0.80)" }}>
-            <Users size={15} color="#9b6dff" /> Coordinadores / Encargados
+            <User size={15} color="#9b6dff" /> Coordinadores / Encargados
           </h2>
           <span className="text-xs" style={{ color: "rgba(255,255,255,0.30)" }}>{coordinators.length} asignado(s)</span>
         </div>
         {coordinators.length === 0 ? (
           <div className="py-8 text-center rounded-xl" style={{ border: "1px dashed rgba(255,255,255,0.10)" }}>
-            <Users size={22} className="mx-auto mb-2" style={{ color: "rgba(255,255,255,0.18)" }} />
+            <User size={22} className="mx-auto mb-2" style={{ color: "rgba(255,255,255,0.18)" }} />
             <p className="text-sm" style={{ color: "rgba(255,255,255,0.25)" }}>
               Sin coordinadores — asígnalos desde la lista de módulos
             </p>
@@ -218,7 +222,7 @@ export default function ModuleDetailPage() {
       <div className="relative overflow-hidden p-5" style={glass(BLUE)}>
         <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: `linear-gradient(90deg,${BLUE},transparent)` }} />
         <h2 className="font-semibold text-sm mb-4 flex items-center gap-2" style={{ color: "rgba(255,255,255,0.80)" }}>
-          <Users size={15} color={BLUE_L} /> Voluntarios asignados
+          <User size={15} color={BLUE_L} /> Voluntarios asignados
         </h2>
         {activeVolunteers.length === 0 ? (
           <p className="text-sm text-center py-4" style={{ color: "rgba(255,255,255,0.25)" }}>Sin voluntarios asignados</p>

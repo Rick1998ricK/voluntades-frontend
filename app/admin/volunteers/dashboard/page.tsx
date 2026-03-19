@@ -151,7 +151,7 @@ export default function VolunteerDashboard() {
             style={{ background: `linear-gradient(135deg,${BLUE},${BLUE_L})`, boxShadow: `0 4px 20px ${BLUE}55` }}>
             {volunteer?.photoUrl ? (
               <img
-                src={`${process.env.NEXT_PUBLIC_API_URL}/${volunteer.photoUrl}`}
+                src={volunteer.photoUrl?.startsWith("http") ? volunteer.photoUrl : `${process.env.NEXT_PUBLIC_API_URL}/${volunteer.photoUrl}`}
                 className="w-full h-full object-cover rounded-2xl"
                 alt="foto"
               />

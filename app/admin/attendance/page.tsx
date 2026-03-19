@@ -5,10 +5,11 @@ import * as XLSX from 'xlsx';
 import { useAuth } from '@/context/AuthContext';
 import api from '@/lib/axios';
 import {
-  ClipboardList, Download, Filter, X, CheckCircle2, Clock, XCircle,
-  Search, ChevronLeft, ChevronRight, BarChart2, FileCheck, AlertCircle,
-  QrCode, CreditCard, UserCheck, ScanLine,
-} from 'lucide-react';
+  QrCode, Download, Key, CheckCircle, AlertCircle, User, Phone,
+  MapPin, Droplets, BookOpen, Calendar, ClipboardList, FileCheck,
+  Clock, XCircle, X, Search, UserCheck, CreditCard, ScanLine, Filter,
+  ChevronRight, ChevronLeft, BarChart2
+} from "lucide-react";
 
 const BLUE   = "#2E6FA8";
 const BLUE_L = "#4A90C4";
@@ -133,7 +134,7 @@ function Autocomplete({ placeholder, fetchUrl, value, onSelect, mapItems }: {
 // ── BADGES ───────────────────────────────────────────────────────────────────
 function StatusBadge({ status }: { status: string }) {
   const s = status?.toLowerCase();
-  if (s === 'puntual') return <span className="flex items-center gap-1 w-fit text-xs font-semibold px-2.5 py-1 rounded-full" style={{ background: "rgba(74,222,128,0.14)", color: "#4ade80" }}><CheckCircle2 size={10} /> Puntual</span>;
+  if (s === 'puntual') return <span className="flex items-center gap-1 w-fit text-xs font-semibold px-2.5 py-1 rounded-full" style={{ background: "rgba(74,222,128,0.14)", color: "#4ade80" }}><CheckCircle size={10} /> Puntual</span>;
   if (s === 'tarde')   return <span className="flex items-center gap-1 w-fit text-xs font-semibold px-2.5 py-1 rounded-full" style={{ background: "rgba(250,204,21,0.14)", color: "#facc15" }}><Clock size={10} /> Tarde</span>;
   if (s === 'falta')   return <span className="flex items-center gap-1 w-fit text-xs font-semibold px-2.5 py-1 rounded-full" style={{ background: "rgba(248,113,113,0.14)", color: "#f87171" }}><XCircle size={10} /> Falta</span>;
   return <span className="text-xs" style={{ color: "rgba(255,255,255,0.25)" }}>—</span>;
@@ -447,7 +448,7 @@ function RegisterModal({ onClose }: { onClose: () => void }) {
               style={result.type === 'ok'
                 ? { background: "rgba(74,222,128,0.12)", color: GREEN, border: "1px solid rgba(74,222,128,0.25)" }
                 : { background: "rgba(248,113,113,0.12)", color: "#f87171", border: "1px solid rgba(248,113,113,0.22)" }}>
-              {result.type === 'ok' ? <CheckCircle2 size={14} className="flex-shrink-0 mt-0.5" /> : <AlertCircle size={14} className="flex-shrink-0 mt-0.5" />}
+              {result.type === 'ok' ? <CheckCircle size={14} className="flex-shrink-0 mt-0.5" /> : <AlertCircle size={14} className="flex-shrink-0 mt-0.5" />}
               <div>
                 <p>{result.text}</p>
                 {result.status && (
@@ -666,7 +667,7 @@ function VolunteerAttendanceView() {
                   style={msg.type === "ok"
                     ? { background: "rgba(74,222,128,0.12)", color: "#4ade80", border: "1px solid rgba(74,222,128,0.22)" }
                     : { background: "rgba(248,113,113,0.12)", color: "#f87171", border: "1px solid rgba(248,113,113,0.22)" }}>
-                  {msg.type === "ok" ? <CheckCircle2 size={13} /> : <AlertCircle size={13} />}
+                  {msg.type === "ok" ? <CheckCircle size={13} /> : <AlertCircle size={13} />}
                   {msg.text}
                 </div>
               )}

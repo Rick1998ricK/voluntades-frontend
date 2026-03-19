@@ -150,7 +150,7 @@ function VolunteerDashboard() {
           <div className="w-14 h-14 md:w-16 md:h-16 rounded-2xl flex-shrink-0 flex items-center justify-center overflow-hidden"
             style={{ background: `linear-gradient(135deg,${BLUE},${BLUE_L})`, boxShadow: `0 4px 20px ${BLUE}55` }}>
             {volunteer?.photoUrl
-              ? <img src={`${API_URL}/${volunteer.photoUrl}`} className="w-full h-full object-cover" alt="foto" />
+              ? <img src={volunteer.photoUrl?.startsWith("http") ? volunteer.photoUrl : `${API_URL}/${volunteer.photoUrl}`} className="w-full h-full object-cover" alt="foto" />
               : <span className="text-2xl font-bold text-white">{getFirstName(user?.name)?.charAt(0)?.toUpperCase()}</span>
             }
           </div>
@@ -540,7 +540,7 @@ function AdminDashboard() {
                   return (
                     <div key={v.id} className="flex items-center gap-3">
                       {v.photoUrl
-                        ? <img src={`${API_URL}/${v.photoUrl}`} className="w-9 h-9 rounded-full object-cover flex-shrink-0"
+                        ? <img src={v.photoUrl?.startsWith("http") ? v.photoUrl : `${API_URL}/${v.photoUrl}`} className="w-9 h-9 rounded-full object-cover flex-shrink-0"
                             style={{ border: "1px solid rgba(244,114,182,0.30)" }} alt="" />
                         : <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
                             style={{ background: "rgba(244,114,182,0.15)", color: "#f472b6" }}>{v.name?.charAt(0)}</div>

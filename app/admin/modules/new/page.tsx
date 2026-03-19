@@ -3,7 +3,15 @@
 import { useEffect, useState } from "react";
 import api from "@/lib/axios";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Boxes, Building2, Plus } from "lucide-react";
+import { 
+  Pencil, ToggleLeft, ToggleRight, AlertTriangle,
+  Building2, Boxes, Plus, ChevronDown, ChevronRight, ChevronLeft,
+  QrCode, Download, Key, CheckCircle, AlertCircle, User, Phone,
+  MapPin, Droplets, BookOpen, Calendar, ClipboardList, FileCheck,
+  Clock, XCircle, X, Search, UserCheck, CreditCard, ScanLine, Filter,
+  BarChart2, Award, CheckSquare, Square, Save, Trash2, Users2, AlignLeft, Box,
+} from "lucide-react";
+
 
 const BLUE   = "#2E6FA8";
 const BLUE_L = "#4A90C4";
@@ -55,7 +63,7 @@ export default function NewModulePage() {
           style={{ color: "rgba(255,255,255,0.40)" }}
           onMouseEnter={e => (e.currentTarget.style.color = BLUE_L)}
           onMouseLeave={e => (e.currentTarget.style.color = "rgba(255,255,255,0.40)")}>
-          <ArrowLeft size={15} /> Volver
+          <ChevronLeft size={15} /> Volver
         </button>
 
         <div className="flex items-center gap-3 mb-6">

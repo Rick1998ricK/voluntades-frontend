@@ -3,7 +3,13 @@
 import { useEffect, useState } from "react";
 import api from "@/lib/axios";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Boxes, Building2, Save } from "lucide-react";
+import {
+  Plus, Users2, Trash2, CheckSquare, Square, Award, AlignLeft, Save,
+  QrCode, Download, Key, CheckCircle, AlertCircle, User, Phone,
+  MapPin, Droplets, BookOpen, Calendar, ClipboardList, FileCheck,
+  Clock, XCircle, X, Search, UserCheck, CreditCard, ScanLine, Filter,
+  ChevronRight, ChevronLeft, BarChart2, Box, Building2
+} from "lucide-react";
 
 const BLUE   = "#2E6FA8";
 const BLUE_L = "#4A90C4";
@@ -72,13 +78,13 @@ export default function EditModulePage() {
           style={{ color: "rgba(255,255,255,0.40)" }}
           onMouseEnter={e => (e.currentTarget.style.color = BLUE_L)}
           onMouseLeave={e => (e.currentTarget.style.color = "rgba(255,255,255,0.40)")}>
-          <ArrowLeft size={15} /> Volver
+          <ChevronLeft size={15} /> Volver
         </button>
 
         <div className="flex items-center gap-3 mb-6">
           <div className="w-10 h-10 rounded-xl flex items-center justify-center"
             style={{ background: "rgba(232,114,42,0.12)", border: "1px solid rgba(232,114,42,0.25)" }}>
-            <Boxes size={18} color={ORANGE} />
+            <Box size={18} color={ORANGE} />
           </div>
           <div>
             <h1 className="text-xl font-bold" style={{ color: "#f1f5f9", letterSpacing: "-0.3px" }}>Editar módulo</h1>
@@ -100,7 +106,7 @@ export default function EditModulePage() {
           <div>
             <label className="flex items-center gap-1.5 text-xs font-medium mb-2 uppercase tracking-widest"
               style={{ color: "rgba(255,255,255,0.40)" }}>
-              <Boxes size={11} /> Nombre <span style={{ color: "#f87171" }}>*</span>
+              <Box size={11} /> Nombre <span style={{ color: "#f87171" }}>*</span>
             </label>
             <input style={inputStyle} value={name} onChange={e => setName(e.target.value)}
               onFocus={e => { e.target.style.borderColor = "rgba(46,111,168,0.60)"; e.target.style.boxShadow = "0 0 0 3px rgba(46,111,168,0.12)"; e.target.style.background = "rgba(255,255,255,0.07)"; }}

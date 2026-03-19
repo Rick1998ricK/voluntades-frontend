@@ -133,13 +133,21 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           style={{ background: "rgba(255,255,255,0.04)" }}
           onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.08)")}
           onMouseLeave={e => (e.currentTarget.style.background = "rgba(255,255,255,0.04)")}>
-          <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 text-white"
-            style={{ background: "linear-gradient(135deg, #2E6FA8, #4A90C4)" }}>
-            {user?.name?.charAt(0)?.toUpperCase() ?? "U"}
-          </div>
+          {user?.photoUrl ? (
+            <img
+              src={user.photoUrl.startsWith("http") ? user.photoUrl : `${process.env.NEXT_PUBLIC_API_URL}/${user.photoUrl}`}
+              className="w-8 h-8 rounded-full object-cover"
+              alt=""
+            />
+          ) : (
+            <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 text-white"
+              style={{ background: "linear-gradient(135deg, #2E6FA8, #4A90C4)" }}>
+              {user?.name?.charAt(0)?.toUpperCase() ?? "U"}
+            </div>
+          )}
           <div className="overflow-hidden flex-1">
             <p className="text-sm font-semibold text-white truncate">{user?.name}</p>
-            <p className="text-xs truncate" style={{ color: "rgba(255,255,255,0.35)" }}>Ver mi perfil</p>
+            <p className="text-xs truncate" style={{ color: "rgba(255,255,255,0.35)" }}>Ver mi perfil</p>x
           </div>
           <ChevronRight size={14} style={{ color: "rgba(255,255,255,0.25)" }} />
         </Link>

@@ -8,6 +8,7 @@ type User = {
   name: string;
   email: string;
   role: string;
+  photoUrl?: string | null;
 };
 
 type AuthContextType = {
@@ -24,9 +25,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
 
+  // Cargar sesión guardada
   useEffect(() => {
     const storedToken = localStorage.getItem("token");
-    const storedUser = localStorage.getItem("user");
+    const storedUser  = localStorage.getItem("user");
 
     if (storedToken && storedUser) {
       setToken(storedToken);
@@ -34,6 +36,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       api.defaults.headers.common.Authorization = `Bearer ${storedToken}`;
     }
   }, []);
+
+  // Cargar foto del voluntario si existe — ANTES del return
+  useEffect(() => {
+    if (!user?.id) return;
+    api.get(`/volunteers/by-user/${user.id}`)
+      .then(res => {
+        if (res.data?.photoUrl) {
+          const updatedUser = { ...user, photoUrl: res.data.photoUrl };
+          setUser(updatedUser);
+          localStorage.setItem("user", JSON.stringify(updatedUser));
+        }
+      })
+      .catch(() => {});
+  }, [user?.id]);
 
   async function login(email: string, password: string) {
     const res = await api.post("/auth/login", { email, password });

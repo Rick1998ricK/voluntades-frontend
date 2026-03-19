@@ -2,7 +2,13 @@
 
 import { useEffect, useState } from "react";
 import api from "@/lib/axios";
-import { Users2, Plus, ChevronDown, X, Award, AlignLeft, Save, CheckSquare, Square, Trash2 } from "lucide-react";
+import {
+  Plus, Users2, Trash2, CheckSquare, Square, Award, AlignLeft, Save,
+  QrCode, Download, Key, CheckCircle, AlertCircle, User, Phone,
+  MapPin, Droplets, BookOpen, Calendar, ClipboardList, FileCheck,
+  Clock, XCircle, X, Search, UserCheck, CreditCard, ScanLine, Filter,
+  ChevronRight, ChevronLeft, BarChart2, ChevronDown,
+} from "lucide-react";
 
 const PAGE_SIZE = 15;
 const BLUE   = "#2E6FA8";

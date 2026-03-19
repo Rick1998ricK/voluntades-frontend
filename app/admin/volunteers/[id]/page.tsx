@@ -234,7 +234,11 @@ export default function VolunteerDetailPage() {
   const age              = calcAge(volunteer.birthDate);
   const isMinor          = age !== null && age < 18;
   const st               = getVolunteerStatus(volunteer);
-  const photoUrl         = volunteer.photoUrl ? `${process.env.NEXT_PUBLIC_API_URL}/${volunteer.photoUrl}` : null;
+  const photoUrl = volunteer.photoUrl
+    ? volunteer.photoUrl.startsWith("http")
+      ? volunteer.photoUrl
+      : `${process.env.NEXT_PUBLIC_API_URL}/${volunteer.photoUrl}`
+    : null;
   const requiredDocs     = getRequiredDocs(volunteer.birthDate);
   const uploadedTypes    = (volunteer.documents ?? []).map((d: any) => d.type);
   const missingDocs      = requiredDocs.filter(r => !uploadedTypes.includes(r));

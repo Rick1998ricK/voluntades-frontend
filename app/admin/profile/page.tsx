@@ -3,13 +3,13 @@
 import { useEffect, useRef, useState } from "react";
 import api from "@/lib/axios";
 import { useAuth } from "@/context/AuthContext";
-// @ts-ignore
-import QRCode from "qrcode";
 import {
-  QrCode, Download, KeyRound, CheckCircle2, AlertCircle, User, Phone,
+  QrCode, Download, Key, CheckCircle, AlertCircle, User, Phone,
   MapPin, Droplets, BookOpen, Calendar, ClipboardList, FileCheck,
   Clock, XCircle, X,
 } from "lucide-react";
+// @ts-ignore
+import QRCode from "qrcode";
 
 const BLUE   = "#2E6FA8";
 const BLUE_L = "#4A90C4";
@@ -56,7 +56,7 @@ function Label({ children }: { children: React.ReactNode }) {
 
 function StatusBadge({ status }: { status: string }) {
   const s = status?.toLowerCase();
-  if (s === "puntual") return <span className="flex items-center gap-1 w-fit text-xs font-semibold px-2.5 py-1 rounded-full" style={{ background: "rgba(74,222,128,0.14)", color: "#4ade80" }}><CheckCircle2 size={10} /> Puntual</span>;
+  if (s === "puntual") return <span className="flex items-center gap-1 w-fit text-xs font-semibold px-2.5 py-1 rounded-full" style={{ background: "rgba(74,222,128,0.14)", color: "#4ade80" }}><CheckCircle size={10} /> Puntual</span>;
   if (s === "tarde")   return <span className="flex items-center gap-1 w-fit text-xs font-semibold px-2.5 py-1 rounded-full" style={{ background: "rgba(250,204,21,0.14)", color: "#facc15" }}><Clock size={10} /> Tarde</span>;
   if (s === "falta")   return <span className="flex items-center gap-1 w-fit text-xs font-semibold px-2.5 py-1 rounded-full" style={{ background: "rgba(248,113,113,0.14)", color: "#f87171" }}><XCircle size={10} /> Falta</span>;
   return <span className="text-xs" style={{ color: "rgba(255,255,255,0.25)" }}>—</span>;
@@ -71,13 +71,11 @@ export default function ProfilePage() {
   const [saving,      setSaving]      = useState(false);
   const [msg,         setMsg]         = useState<{ type: "ok" | "err"; text: string } | null>(null);
 
-  // ── Asistencia & Justificaciones ──
   const [attRows,     setAttRows]     = useState<any[]>([]);
   const [justRows,    setJustRows]    = useState<any[]>([]);
   const [attLoading,  setAttLoading]  = useState(false);
   const [justLoading, setJustLoading] = useState(false);
 
-  // ── Modal justificar (solo voluntario) ──
   const [justModal,   setJustModal]   = useState<any>(null);
   const [reason,      setReason]      = useState("");
   const [file,        setFile]        = useState<File | null>(null);
@@ -99,7 +97,6 @@ export default function ProfilePage() {
     }
   }, [volunteer]);
 
-  // Cargar historial de asistencia
   useEffect(() => {
     if (!volunteer?.id) return;
     setAttLoading(true);
@@ -109,7 +106,6 @@ export default function ProfilePage() {
       .finally(() => setAttLoading(false));
   }, [volunteer]);
 
-  // Cargar justificaciones
   useEffect(() => {
     if (!volunteer?.id) return;
     setJustLoading(true);
@@ -162,7 +158,6 @@ export default function ProfilePage() {
       setReason(""); setFile(null);
       setTimeout(() => {
         setJustModal(null); setJustMsg(null);
-        // Recargar ambas listas
         api.get(`/attendance/volunteer/${volunteer.id}/history`).then(r => setAttRows(r.data ?? []));
         api.get("/justifications/mine").then(r => setJustRows(r.data ?? []));
       }, 1500);
@@ -178,9 +173,8 @@ export default function ProfilePage() {
     return row.justification.status === "rechazado";
   };
 
-  const photoUrl = volunteer?.photoUrl
-    ? `${process.env.NEXT_PUBLIC_API_URL}/${volunteer.photoUrl}`
-    : null;
+  // ✅ Fix Cloudinary — photoUrl ya es URL completa
+  const photoUrl = volunteer?.photoUrl ?? null;
 
   const roleInfo = ROLE_CONFIG[authUser?.role as string] ?? { label: authUser?.role ?? "—", color: BLUE_L, bg: `${BLUE}20` };
 
@@ -198,7 +192,6 @@ export default function ProfilePage() {
     ...(volunteer.isStudent ? [{ label: "Institución", value: volunteer.institution, icon: <BookOpen size={12} /> }] : []),
   ] : [];
 
-  // Stats asistencia
   const puntuales = attRows.filter(r => r.status?.toLowerCase() === "puntual").length;
   const tardes    = attRows.filter(r => r.status?.toLowerCase() === "tarde").length;
   const faltas    = attRows.filter(r => r.status?.toLowerCase() === "falta").length;
@@ -206,7 +199,6 @@ export default function ProfilePage() {
   return (
     <div className="p-4 md:p-6 space-y-5 min-h-screen" style={{ background: "#070d14", color: "#e2e8f0" }}>
 
-      {/* HEADER */}
       <div>
         <h1 className="text-xl md:text-2xl font-bold" style={{ color: "#f1f5f9", letterSpacing: "-0.3px" }}>Mi perfil</h1>
         <p className="text-xs md:text-sm mt-0.5" style={{ color: "rgba(255,255,255,0.35)" }}>Tu información personal y código QR</p>
@@ -214,10 +206,8 @@ export default function ProfilePage() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
 
-        {/* ── FOTO + DATOS ── */}
         <div className="md:col-span-2 space-y-5">
 
-          {/* Identidad */}
           <div className="relative overflow-hidden p-6" style={glass(BLUE)}>
             <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: `linear-gradient(90deg,${BLUE},transparent)` }} />
             <div className="flex items-center gap-5">
@@ -253,7 +243,6 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          {/* Datos del voluntario */}
           {volunteer && (
             <div className="relative overflow-hidden p-6" style={glass(BLUE)}>
               <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: `linear-gradient(90deg,${BLUE},transparent)` }} />
@@ -274,7 +263,6 @@ export default function ProfilePage() {
           )}
         </div>
 
-        {/* ── QR + CONTRASEÑA ── */}
         <div className="space-y-5">
           <div className="relative overflow-hidden p-5 flex flex-col items-center gap-4" style={glass(BLUE)}>
             <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: `linear-gradient(90deg,${BLUE},transparent)` }} />
@@ -309,11 +297,10 @@ export default function ProfilePage() {
             )}
           </div>
 
-          {/* CAMBIAR CONTRASEÑA */}
           <div className="relative overflow-hidden p-5 space-y-4" style={glass(ORANGE)}>
             <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: `linear-gradient(90deg,${ORANGE},transparent)` }} />
             <div className="flex items-center gap-2">
-              <KeyRound size={13} color={ORANGE} />
+              <Key size={13} color={ORANGE} />
               <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "rgba(255,255,255,0.30)" }}>Cambiar contraseña</p>
             </div>
             {msg && (
@@ -321,7 +308,7 @@ export default function ProfilePage() {
                 style={msg.type === "ok"
                   ? { background: "rgba(74,222,128,0.12)", color: "#4ade80",  border: "1px solid rgba(74,222,128,0.22)" }
                   : { background: "rgba(248,113,113,0.12)", color: "#f87171", border: "1px solid rgba(248,113,113,0.22)" }}>
-                {msg.type === "ok" ? <CheckCircle2 size={13} /> : <AlertCircle size={13} />}
+                {msg.type === "ok" ? <CheckCircle size={13} /> : <AlertCircle size={13} />}
                 {msg.text}
               </div>
             )}
@@ -329,7 +316,7 @@ export default function ProfilePage() {
               <div>
                 <Label>Nueva contraseña</Label>
                 <input type="password" placeholder="Mínimo 6 caracteres"
-                  style={{ ...IS, type: "password" } as any} value={passwords.newPass}
+                  style={IS} value={passwords.newPass}
                   onChange={e => setPasswords(p => ({ ...p, newPass: e.target.value }))}
                   onFocus={fi} onBlur={fo} />
               </div>
@@ -345,7 +332,7 @@ export default function ProfilePage() {
                 style={{ background: saving ? "rgba(232,114,42,0.30)" : `linear-gradient(135deg,${ORANGE},#f5a35a)`, color: "#fff", cursor: saving ? "not-allowed" : "pointer" }}>
                 {saving
                   ? <div className="w-4 h-4 rounded-full animate-spin" style={{ border: "2px solid rgba(255,255,255,0.3)", borderTopColor: "#fff" }} />
-                  : <KeyRound size={14} />}
+                  : <Key size={14} />}
                 {saving ? "Guardando..." : "Actualizar contraseña"}
               </button>
             </div>
@@ -353,14 +340,9 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* ══════════════════════════════════════════════
-          SECCIÓN ASISTENCIA + JUSTIFICACIONES
-          Solo visible si el usuario tiene ficha de voluntario
-      ══════════════════════════════════════════════ */}
       {volunteer && (
         <div className="space-y-5">
 
-          {/* STATS ASISTENCIA */}
           <div>
             <p className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: "rgba(255,255,255,0.30)" }}>
               Mi asistencia
@@ -381,7 +363,6 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          {/* HISTORIAL ASISTENCIAS */}
           <div className="relative overflow-hidden" style={glass(BLUE)}>
             <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: `linear-gradient(90deg,${BLUE},transparent)` }} />
             <div className="px-5 py-4 flex items-center justify-between" style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
@@ -439,7 +420,6 @@ export default function ProfilePage() {
             )}
           </div>
 
-          {/* LISTA JUSTIFICACIONES */}
           <div className="relative overflow-hidden" style={glass(ORANGE)}>
             <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: `linear-gradient(90deg,${ORANGE},transparent)` }} />
             <div className="px-5 py-4 flex items-center justify-between" style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
@@ -509,7 +489,6 @@ export default function ProfilePage() {
         </div>
       )}
 
-      {/* ═══ MODAL JUSTIFICAR ═══ */}
       {justModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{ background: "rgba(0,0,0,0.70)", backdropFilter: "blur(6px)" }}
@@ -545,7 +524,7 @@ export default function ProfilePage() {
                   style={justMsg.type === "ok"
                     ? { background: "rgba(74,222,128,0.12)", color: "#4ade80", border: "1px solid rgba(74,222,128,0.22)" }
                     : { background: "rgba(248,113,113,0.12)", color: "#f87171", border: "1px solid rgba(248,113,113,0.22)" }}>
-                  {justMsg.type === "ok" ? <CheckCircle2 size={13} /> : <AlertCircle size={13} />}
+                  {justMsg.type === "ok" ? <CheckCircle size={13} /> : <AlertCircle size={13} />}
                   {justMsg.text}
                 </div>
               )}

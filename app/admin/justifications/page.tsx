@@ -190,7 +190,7 @@ export default function JustificationsPage() {
                     </td>
                     <td className="px-4 py-3">
                       {j.fileUrl ? (
-                        <a href={`${process.env.NEXT_PUBLIC_API_URL}/${j.fileUrl}`} target="_blank"
+                        <a href={j.fileUrl} target="_blank"
                           className="flex items-center gap-1 text-xs font-medium transition-colors duration-200"
                           style={{ color: BLUE_L }}
                           onMouseEnter={e => (e.currentTarget.style.color = "#fff")}
@@ -265,9 +265,7 @@ export default function JustificationsPage() {
               </div>
               <button onClick={() => setDetail(null)}
                 className="w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200"
-                style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.50)" }}
-                onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.12)")}
-                onMouseLeave={e => (e.currentTarget.style.background = "rgba(255,255,255,0.06)")}>
+                style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.50)" }}>
                 <X size={14} />
               </button>
             </div>
@@ -288,7 +286,7 @@ export default function JustificationsPage() {
                   </div>
                 ))}
                 {detail.fileUrl && (
-                  <a href={`${process.env.NEXT_PUBLIC_API_URL}/${detail.fileUrl}`} target="_blank"
+                  <a href={detail.fileUrl} target="_blank"
                     className="flex items-center gap-1.5 text-xs font-medium mt-1"
                     style={{ color: BLUE_L }}>
                     <ExternalLink size={11} /> Ver archivo adjunto
@@ -330,17 +328,13 @@ export default function JustificationsPage() {
               <div className="flex gap-2 pt-1">
                 <button onClick={() => setDetail(null)}
                   className="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200"
-                  style={{ background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.50)", border: "1px solid rgba(255,255,255,0.09)" }}
-                  onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.09)")}
-                  onMouseLeave={e => (e.currentTarget.style.background = "rgba(255,255,255,0.05)")}>
+                  style={{ background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.50)", border: "1px solid rgba(255,255,255,0.09)" }}>
                   Cerrar
                 </button>
                 {detail.status !== "pendiente" && (
                   <button onClick={() => revert(detail.id)} disabled={reverting}
                     className="flex items-center justify-center gap-1.5 flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200"
-                    style={{ background: "rgba(232,114,42,0.15)", color: ORANGE, border: `1px solid rgba(232,114,42,0.25)` }}
-                    onMouseEnter={e => (e.currentTarget.style.background = "rgba(232,114,42,0.28)")}
-                    onMouseLeave={e => (e.currentTarget.style.background = "rgba(232,114,42,0.15)")}>
+                    style={{ background: "rgba(232,114,42,0.15)", color: ORANGE, border: `1px solid rgba(232,114,42,0.25)` }}>
                     {reverting
                       ? <div className="w-4 h-4 rounded-full animate-spin" style={{ border: "2px solid rgba(232,114,42,0.3)", borderTopColor: ORANGE }} />
                       : <RotateCcw size={14} />}
@@ -372,9 +366,7 @@ export default function JustificationsPage() {
               </div>
               <button onClick={() => setSelected(null)}
                 className="w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200"
-                style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.50)" }}
-                onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.12)")}
-                onMouseLeave={e => (e.currentTarget.style.background = "rgba(255,255,255,0.06)")}>
+                style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.50)" }}>
                 <X size={14} />
               </button>
             </div>
@@ -394,7 +386,7 @@ export default function JustificationsPage() {
                   </div>
                 ))}
                 {selected.fileUrl && (
-                  <a href={`${process.env.NEXT_PUBLIC_API_URL}/${selected.fileUrl}`} target="_blank"
+                  <a href={selected.fileUrl} target="_blank"
                     className="flex items-center gap-1.5 text-xs font-medium mt-1"
                     style={{ color: BLUE_L }}>
                     <ExternalLink size={11} /> Ver archivo adjunto
@@ -416,23 +408,17 @@ export default function JustificationsPage() {
               <div className="flex gap-2 pt-1">
                 <button onClick={() => setSelected(null)}
                   className="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200"
-                  style={{ background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.50)", border: "1px solid rgba(255,255,255,0.09)" }}
-                  onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.09)")}
-                  onMouseLeave={e => (e.currentTarget.style.background = "rgba(255,255,255,0.05)")}>
+                  style={{ background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.50)", border: "1px solid rgba(255,255,255,0.09)" }}>
                   Cancelar
                 </button>
                 <button onClick={() => review("rechazado")} disabled={saving}
                   className="flex items-center justify-center gap-1.5 flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200"
-                  style={{ background: "rgba(248,113,113,0.15)", color: "#f87171", border: "1px solid rgba(248,113,113,0.25)" }}
-                  onMouseEnter={e => (e.currentTarget.style.background = "rgba(248,113,113,0.28)")}
-                  onMouseLeave={e => (e.currentTarget.style.background = "rgba(248,113,113,0.15)")}>
+                  style={{ background: "rgba(248,113,113,0.15)", color: "#f87171", border: "1px solid rgba(248,113,113,0.25)" }}>
                   <XCircle size={14} /> Rechazar
                 </button>
                 <button onClick={() => review("aprobado")} disabled={saving}
                   className="flex items-center justify-center gap-1.5 flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200"
-                  style={{ background: "rgba(74,222,128,0.15)", color: "#4ade80", border: "1px solid rgba(74,222,128,0.25)" }}
-                  onMouseEnter={e => (e.currentTarget.style.background = "rgba(74,222,128,0.28)")}
-                  onMouseLeave={e => (e.currentTarget.style.background = "rgba(74,222,128,0.15)")}>
+                  style={{ background: "rgba(74,222,128,0.15)", color: "#4ade80", border: "1px solid rgba(74,222,128,0.25)" }}>
                   {saving ? <div className="w-4 h-4 rounded-full animate-spin" style={{ border: "2px solid rgba(74,222,128,0.3)", borderTopColor: "#4ade80" }} /> : <CheckCircle2 size={14} />}
                   Aprobar
                 </button>

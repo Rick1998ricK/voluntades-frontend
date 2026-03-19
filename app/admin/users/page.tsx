@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import api from "@/lib/axios";
-import { Users, Plus, ChevronDown, Shield, ClipboardList, Trash2 } from "lucide-react";
+import { Users, Plus, ChevronDown, Shield, ClipboardList, Trash2, Search, X, Filter } from "lucide-react";
 
 const PAGE_SIZE = 15;
 const BLUE   = "#2E6FA8";
@@ -22,6 +22,21 @@ const glass = () => ({
   boxShadow: "0 8px 32px rgba(0,0,0,0.30), inset 0 1px 0 rgba(255,255,255,0.06)",
 });
 
+const IS: React.CSSProperties = {
+  width: "100%",
+  background: "rgba(255,255,255,0.05)",
+  border: "1px solid rgba(255,255,255,0.10)",
+  borderRadius: "10px",
+  padding: "8px 12px",
+  color: "#f1f5f9",
+  fontSize: "13px",
+  outline: "none",
+  transition: "all 0.2s",
+  colorScheme: "dark" as const,
+};
+const fi = (e: React.FocusEvent<any>) => { e.target.style.borderColor="rgba(46,111,168,0.60)"; e.target.style.boxShadow="0 0 0 3px rgba(46,111,168,0.12)"; e.target.style.background="rgba(255,255,255,0.07)"; };
+const fo = (e: React.FocusEvent<any>) => { e.target.style.borderColor="rgba(255,255,255,0.10)"; e.target.style.boxShadow="none"; e.target.style.background="rgba(255,255,255,0.05)"; };
+
 const ROLE_STYLES: Record<string, { label: string; color: string; bg: string; border: string }> = {
   super_admin: { label: "Super Admin", color: "#c084fc", bg: "rgba(192,132,252,0.12)", border: "rgba(192,132,252,0.25)" },
   admin:       { label: "Admin",       color: BLUE_L,   bg: "rgba(74,144,196,0.12)",  border: "rgba(74,144,196,0.25)"  },
@@ -32,9 +47,15 @@ const ROLE_STYLES: Record<string, { label: string; color: string; bg: string; bo
 export default function UsersPage() {
   const router       = useRouter();
   const { user: me } = useAuth();
-  const [users, setUsers]     = useState<any[]>([]);
+  const [users,   setUsers]   = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [visible, setVisible] = useState(PAGE_SIZE);
+
+  // Filtros
+  const [search,      setSearch]      = useState("");
+  const [filterRol,   setFilterRol]   = useState("");
+  const [filterEmail, setFilterEmail] = useState("");
+  const [filterState, setFilterState] = useState("");
 
   useEffect(() => { load(); }, []);
 
@@ -69,11 +90,29 @@ export default function UsersPage() {
     } catch { alert("Este usuario no tiene ficha de voluntario"); }
   }
 
-  const shown   = users.slice(0, visible);
-  const hasMore = visible < users.length;
+  // Filtrado
+  const filtered = users.filter(u => {
+    const roleName = u.role?.name ?? u.role ?? "";
+    const isActive = u.isActive !== false;
+    const matchName  = !search      || u.name?.toLowerCase().includes(search.toLowerCase());
+    const matchEmail = !filterEmail || u.email?.toLowerCase().includes(filterEmail.toLowerCase());
+    const matchRol   = !filterRol   || roleName === filterRol;
+    const matchState = !filterState || (filterState === "activo" ? isActive : !isActive);
+    return matchName && matchEmail && matchRol && matchState;
+  });
+
+  const shown   = filtered.slice(0, visible);
+  const hasMore = visible < filtered.length;
+
+  const hasFilters = search || filterRol || filterEmail || filterState;
+
+  function clearFilters() {
+    setSearch(""); setFilterRol(""); setFilterEmail(""); setFilterState("");
+    setVisible(PAGE_SIZE);
+  }
 
   return (
-    <div className="p-4 md:p-6 space-y-4 md:space-y-6 min-h-screen" style={{ background: "#070d14", color: "#e2e8f0" }}>
+    <div className="p-4 md:p-6 space-y-4 md:space-y-5 min-h-screen" style={{ background: "#070d14", color: "#e2e8f0" }}>
 
       {/* HEADER */}
       <div className="flex items-center justify-between gap-3">
@@ -90,6 +129,81 @@ export default function UsersPage() {
           <span className="hidden sm:inline">Nuevo usuario</span>
           <span className="sm:hidden">Nuevo</span>
         </Link>
+      </div>
+
+      {/* FILTROS */}
+      <div className="relative p-4" style={{ ...glass(), overflow: "visible" }}>
+        <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, borderRadius: "16px 16px 0 0", background: `linear-gradient(90deg,${BLUE},transparent)` }} />
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <Filter size={12} color={BLUE_L} />
+            <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: "rgba(255,255,255,0.35)" }}>Filtros</span>
+            {filtered.length !== users.length && (
+              <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: `rgba(46,111,168,0.20)`, color: BLUE_L }}>
+                {filtered.length} resultado(s)
+              </span>
+            )}
+          </div>
+          {hasFilters && (
+            <button onClick={clearFilters} className="flex items-center gap-1 text-xs transition-colors duration-200"
+              style={{ color: "rgba(255,255,255,0.35)" }}
+              onMouseEnter={e => (e.currentTarget.style.color = "#f87171")}
+              onMouseLeave={e => (e.currentTarget.style.color = "rgba(255,255,255,0.35)")}>
+              <X size={11} /> Limpiar
+            </button>
+          )}
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          {/* Nombre */}
+          <div style={{ position: "relative" }}>
+            <label className="text-xs uppercase tracking-widest mb-1.5 block" style={{ color: "rgba(255,255,255,0.35)" }}>Nombre</label>
+            <div style={{ position: "relative" }}>
+              <Search size={12} style={{ position: "absolute", left: 9, top: "50%", transform: "translateY(-50%)", color: "rgba(255,255,255,0.25)", pointerEvents: "none" }} />
+              <input type="text" placeholder="Buscar por nombre..."
+                style={{ ...IS, paddingLeft: 28 }} value={search}
+                onChange={e => { setSearch(e.target.value); setVisible(PAGE_SIZE); }}
+                onFocus={fi} onBlur={fo} />
+            </div>
+          </div>
+
+          {/* Email */}
+          <div>
+            <label className="text-xs uppercase tracking-widest mb-1.5 block" style={{ color: "rgba(255,255,255,0.35)" }}>Correo</label>
+            <div style={{ position: "relative" }}>
+              <Search size={12} style={{ position: "absolute", left: 9, top: "50%", transform: "translateY(-50%)", color: "rgba(255,255,255,0.25)", pointerEvents: "none" }} />
+              <input type="text" placeholder="Buscar por correo..."
+                style={{ ...IS, paddingLeft: 28 }} value={filterEmail}
+                onChange={e => { setFilterEmail(e.target.value); setVisible(PAGE_SIZE); }}
+                onFocus={fi} onBlur={fo} />
+            </div>
+          </div>
+
+          {/* Rol */}
+          <div>
+            <label className="text-xs uppercase tracking-widest mb-1.5 block" style={{ color: "rgba(255,255,255,0.35)" }}>Rol</label>
+            <select style={{ ...IS, cursor: "pointer" }} value={filterRol}
+              onChange={e => { setFilterRol(e.target.value); setVisible(PAGE_SIZE); }}
+              onFocus={fi} onBlur={fo}>
+              <option value="">Todos los roles</option>
+              <option value="super_admin">Super Admin</option>
+              <option value="admin">Admin</option>
+              <option value="registrador">Registrador</option>
+              <option value="voluntario">Voluntario</option>
+            </select>
+          </div>
+
+          {/* Estado */}
+          <div>
+            <label className="text-xs uppercase tracking-widest mb-1.5 block" style={{ color: "rgba(255,255,255,0.35)" }}>Estado</label>
+            <select style={{ ...IS, cursor: "pointer" }} value={filterState}
+              onChange={e => { setFilterState(e.target.value); setVisible(PAGE_SIZE); }}
+              onFocus={fi} onBlur={fo}>
+              <option value="">Todos</option>
+              <option value="activo">Activo</option>
+              <option value="inactivo">Inactivo</option>
+            </select>
+          </div>
+        </div>
       </div>
 
       {loading ? (
@@ -123,7 +237,15 @@ export default function UsersPage() {
                             style={{ background: "rgba(46,111,168,0.12)" }}>
                             <Users size={22} color={BLUE_L} />
                           </div>
-                          <p className="text-sm" style={{ color: "rgba(255,255,255,0.30)" }}>No hay usuarios registrados</p>
+                          <p className="text-sm" style={{ color: "rgba(255,255,255,0.30)" }}>
+                            {hasFilters ? "No se encontraron usuarios con esos filtros" : "No hay usuarios registrados"}
+                          </p>
+                          {hasFilters && (
+                            <button onClick={clearFilters} className="text-xs px-3 py-1.5 rounded-lg"
+                              style={{ background: "rgba(46,111,168,0.12)", color: BLUE_L, border: "1px solid rgba(46,111,168,0.22)" }}>
+                              Limpiar filtros
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -145,7 +267,6 @@ export default function UsersPage() {
                         onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.03)")}
                         onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
 
-                        {/* Avatar + nombre */}
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2.5">
                             <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
@@ -163,7 +284,6 @@ export default function UsersPage() {
 
                         <td className="px-4 py-3 text-xs" style={{ color: "rgba(255,255,255,0.50)" }}>{u.email}</td>
 
-                        {/* Rol */}
                         <td className="px-4 py-3">
                           <span className="flex items-center gap-1 w-fit text-xs font-semibold px-2.5 py-1 rounded-full"
                             style={{ background: role.bg, color: role.color, border: `1px solid ${role.border}` }}>
@@ -172,7 +292,6 @@ export default function UsersPage() {
                           </span>
                         </td>
 
-                        {/* Estado */}
                         <td className="px-4 py-3">
                           <span className="text-xs font-semibold px-2.5 py-1 rounded-full"
                             style={isActive
@@ -182,7 +301,6 @@ export default function UsersPage() {
                           </span>
                         </td>
 
-                        {/* Acciones */}
                         <td className="px-4 py-3">
                           <div className="flex gap-1.5 flex-wrap">
                             <Link href={`/admin/users/${u.id}/edit`}
@@ -242,7 +360,7 @@ export default function UsersPage() {
                 style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.10)", color: "rgba(255,255,255,0.60)" }}
                 onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.09)")}
                 onMouseLeave={e => (e.currentTarget.style.background = "rgba(255,255,255,0.05)")}>
-                <ChevronDown size={15} /> Cargar más ({users.length - visible} restantes)
+                <ChevronDown size={15} /> Cargar más ({filtered.length - visible} restantes)
               </button>
             </div>
           )}

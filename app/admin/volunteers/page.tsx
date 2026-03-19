@@ -253,7 +253,7 @@ export default function VolunteersPage() {
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2.5">
                             {vol.photoUrl ? (
-                              <img src={`${process.env.NEXT_PUBLIC_API_URL}/${vol.photoUrl}`}
+                              <img src={vol.photoUrl?.startsWith("http") ? vol.photoUrl : `${process.env.NEXT_PUBLIC_API_URL}/${vol.photoUrl}`}
                                 className="w-8 h-8 rounded-full object-cover flex-shrink-0"
                                 style={{ border: "1px solid rgba(255,255,255,0.12)" }} alt=""
                                 onError={e => { (e.target as any).style.display = "none"; }} />

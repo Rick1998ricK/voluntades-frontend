@@ -3,9 +3,13 @@
 import { useEffect, useState } from "react";
 import api from "@/lib/axios";
 import Link from "next/link";
-import {
-  Boxes, Users, Building2, Plus, ChevronDown,
-  X, Search, Award, Calendar, UserMinus,
+import { 
+  Pencil, ToggleLeft, ToggleRight, AlertTriangle,
+  Building2, Boxes, Plus, ChevronDown, ChevronRight, ChevronLeft,
+  QrCode, Download, Key, CheckCircle, AlertCircle, User, Phone,
+  MapPin, Droplets, BookOpen, Calendar, ClipboardList, FileCheck,
+  Clock, XCircle, X, Search, UserCheck, CreditCard, ScanLine, Filter,
+  BarChart2, Award, CheckSquare, Square, Save, Trash2, Users2, AlignLeft, UserMinus,
 } from "lucide-react";
 
 const PAGE_SIZE = 15;
@@ -94,7 +98,7 @@ function CoordinatorsModal({ module, onClose, onUpdate }: {
           style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
           <div>
             <h2 className="font-bold text-base flex items-center gap-2" style={{ color: "#f1f5f9" }}>
-              <Users size={16} color={BLUE_L} /> Coordinadores
+              <User size={16} color={BLUE_L} /> Coordinadores
             </h2>
             <p className="text-xs mt-0.5" style={{ color: "rgba(255,255,255,0.35)" }}>{module.name}</p>
           </div>
@@ -168,7 +172,7 @@ function CoordinatorsModal({ module, onClose, onUpdate }: {
             </label>
             {coordinators.length === 0 ? (
               <div className="py-8 text-center rounded-xl" style={{ border: "1px dashed rgba(255,255,255,0.12)" }}>
-                <Users size={22} className="mx-auto mb-2" style={{ color: "rgba(255,255,255,0.20)" }} />
+                <User size={22} className="mx-auto mb-2" style={{ color: "rgba(255,255,255,0.20)" }} />
                 <p className="text-sm" style={{ color: "rgba(255,255,255,0.25)" }}>Sin coordinadores asignados</p>
               </div>
             ) : (
@@ -367,7 +371,7 @@ export default function ModulesPage() {
                       {/* Voluntarios */}
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1.5">
-                          <Users size={13} color={ORANGE} />
+                          <User size={13} color={ORANGE} />
                           <span style={{ color: "rgba(255,255,255,0.70)" }}>
                             {mod.volunteers?.filter((v: any) => v.status === "activo").length ?? 0}
                           </span>

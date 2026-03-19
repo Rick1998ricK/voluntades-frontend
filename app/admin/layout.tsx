@@ -147,7 +147,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           )}
           <div className="overflow-hidden flex-1">
             <p className="text-sm font-semibold text-white truncate">{user?.name}</p>
-            <p className="text-xs truncate" style={{ color: "rgba(255,255,255,0.35)" }}>Ver mi perfil</p>x
+            <p className="text-xs truncate" style={{ color: "rgba(255,255,255,0.35)" }}>Ver mi perfil</p>
           </div>
           <ChevronRight size={14} style={{ color: "rgba(255,255,255,0.25)" }} />
         </Link>

@@ -221,7 +221,7 @@ export default function PrintQrPage() {
         )}
       </div>
 
-      {/* ── HOJA DE IMPRESIÓN (idéntica al original para no romper el layout) ── */}
+      {/* ── HOJA DE IMPRESIÓN ── */}
       {previewing && cards.length > 0 && (
         <div className="print-only">
           {Array.from({ length: Math.ceil(cards.length / 24) }).map((_, pageIdx) => (
@@ -251,14 +251,33 @@ export default function PrintQrPage() {
         @media print {
           body * { visibility: hidden; }
           .print-only, .print-only * { visibility: visible; }
-          .print-only { position: fixed; top: 0; left: 0; width: 100%; }
+          .print-only { position: absolute; top: 0; left: 0; width: 100%; }
           .no-print { display: none !important; }
         }
         @media screen { .print-only { display: none; } }
         @page { size: A4 portrait; margin: 0; }
-        .print-page { width: 210mm; min-height: 297mm; padding: 8mm 7mm; box-sizing: border-box; page-break-after: always; background: #fff; }
+        .print-page {
+          width: 210mm;
+          min-height: 297mm;
+          padding: 8mm 7mm;
+          box-sizing: border-box;
+          page-break-after: always;
+          break-after: page;
+          background: #fff;
+        }
         .print-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3.5mm; }
-        .qr-card { border: 0.3mm solid #c7d2e0; border-radius: 2mm; overflow: hidden; background: #fff; display: flex; flex-direction: column; align-items: center; page-break-inside: avoid; padding-bottom: 2mm; }
+        .qr-card {
+          border: 0.3mm solid #c7d2e0;
+          border-radius: 2mm;
+          overflow: hidden;
+          background: #fff;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          page-break-inside: avoid;
+          break-inside: avoid;
+          padding-bottom: 2mm;
+        }
         .qr-header { width: 100%; background: #1a1a2e; text-align: center; padding: 1mm 0; }
         .qr-org { color: #fb923c; font-size: 5.5pt; font-weight: 900; letter-spacing: 0.4mm; font-family: Arial, sans-serif; text-transform: uppercase; }
         .qr-img { width: 21mm; height: 21mm; display: block; margin: 1.5mm auto 1mm; }

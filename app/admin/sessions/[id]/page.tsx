@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import api from "@/lib/axios";
+import { useAuth } from "@/context/AuthContext";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, CalendarDays, Clock, Users, CheckCircle2, XCircle, ExternalLink } from "lucide-react";
+import { ArrowLeft, CalendarDays, Clock, CheckCircle2, XCircle, ExternalLink } from "lucide-react";
 
 const BLUE   = "#2E6FA8";
 const BLUE_L = "#4A90C4";
@@ -110,13 +111,18 @@ function AttendanceTable({ rows, title, external = false }: { rows: any[]; title
 }
 
 export default function SessionDetailPage() {
-  const params = useParams();
-  const router = useRouter();
-  const id = params.id as string;
+  const params   = useParams();
+  const router   = useRouter();
+  const { user } = useAuth();
+  const id       = params.id as string;
 
-  const [session, setSession]     = useState<any>(null);
+  // ── Permisos ──────────────────────────────────────────────
+  const isReadOnly = user?.role === "admin";
+  // ─────────────────────────────────────────────────────────
+
+  const [session,   setSession]   = useState<any>(null);
   const [dashboard, setDashboard] = useState<any>(null);
-  const [loading, setLoading]     = useState(true);
+  const [loading,   setLoading]   = useState(true);
 
   useEffect(() => { if (id) loadData(); }, [id]);
 
@@ -143,10 +149,10 @@ export default function SessionDetailPage() {
   );
 
   const externalRows = dashboard?.externalRows ?? [];
-  const stats = dashboard?.stats ?? {};
+  const stats        = dashboard?.stats ?? {};
 
   const statCards = [
-    { label: "Total voluntarios", value: stats.totalVolunteers ?? 0, color: "rgba(255,255,255,0.80)", accent: BLUE },
+    { label: "Total voluntarios", value: stats.totalVolunteers ?? 0, color: "rgba(255,255,255,0.80)", accent: BLUE     },
     { label: "Puntuales",         value: stats.presentes ?? 0,       color: "#4ade80",                accent: "#4ade80" },
     { label: "Tarde",             value: stats.tarde ?? 0,           color: "#facc15",                accent: "#facc15" },
     { label: "Faltas",            value: stats.faltas ?? 0,          color: "#f87171",                accent: "#f87171" },
@@ -155,7 +161,6 @@ export default function SessionDetailPage() {
   return (
     <div className="p-4 md:p-6 space-y-4 md:space-y-5 min-h-screen" style={{ background: "#070d14", color: "#e2e8f0" }}>
 
-      {/* VOLVER */}
       <button onClick={() => router.back()}
         className="flex items-center gap-1.5 text-sm font-medium transition-colors duration-200"
         style={{ color: "rgba(255,255,255,0.40)" }}
@@ -187,16 +192,20 @@ export default function SessionDetailPage() {
             </div>
           </div>
         </div>
-        <button onClick={() => router.push(`/admin/sessions/${id}/edit`)}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-200 flex-shrink-0"
-          style={{ background: "rgba(232,114,42,0.12)", color: ORANGE, border: "1px solid rgba(232,114,42,0.25)" }}
-          onMouseEnter={e => (e.currentTarget.style.background = "rgba(232,114,42,0.22)")}
-          onMouseLeave={e => (e.currentTarget.style.background = "rgba(232,114,42,0.12)")}>
-          Editar sesión
-        </button>
+
+        {/* Editar sesión — solo no-admin */}
+        {!isReadOnly && (
+          <button onClick={() => router.push(`/admin/sessions/${id}/edit`)}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-200 flex-shrink-0"
+            style={{ background: "rgba(232,114,42,0.12)", color: ORANGE, border: "1px solid rgba(232,114,42,0.25)" }}
+            onMouseEnter={e => (e.currentTarget.style.background = "rgba(232,114,42,0.22)")}
+            onMouseLeave={e => (e.currentTarget.style.background = "rgba(232,114,42,0.12)")}>
+            Editar sesión
+          </button>
+        )}
       </div>
 
-      {/* INFO DE HORARIO */}
+      {/* INFO HORARIO */}
       <div className="relative overflow-hidden p-5" style={glass(BLUE)}>
         <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: `linear-gradient(90deg,${BLUE},transparent)` }} />
         <p className="text-xs font-semibold uppercase tracking-widest mb-4" style={{ color: "rgba(255,255,255,0.30)" }}>Información de la sesión</p>
@@ -206,9 +215,9 @@ export default function SessionDetailPage() {
             <p className="font-semibold" style={{ color: "#f1f5f9" }}>{session?.date}</p>
           </div>
           {[
-            { label: "Inicio",      val: session?.startTime,     color: "#4ade80", bg: "rgba(74,222,128,0.14)"  },
-            { label: "Tolerancia",  val: session?.toleranceTime, color: "#facc15", bg: "rgba(250,204,21,0.14)"  },
-            { label: "Fin",         val: session?.endTime,       color: "#f87171", bg: "rgba(248,113,113,0.14)" },
+            { label: "Inicio",     val: session?.startTime,     color: "#4ade80", bg: "rgba(74,222,128,0.14)"  },
+            { label: "Tolerancia", val: session?.toleranceTime, color: "#facc15", bg: "rgba(250,204,21,0.14)"  },
+            { label: "Fin",        val: session?.endTime,       color: "#f87171", bg: "rgba(248,113,113,0.14)" },
           ].map(({ label, val, color, bg }) => (
             <div key={label}>
               <p className="text-xs mb-1 font-semibold" style={{ color }}>{label}</p>

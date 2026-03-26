@@ -3,11 +3,12 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import api from "@/lib/axios";
+import { useAuth } from "@/context/AuthContext";
 // @ts-ignore
 import QRCode from "qrcode";
 import {
-  ArrowLeft, Pencil, ToggleLeft, ToggleRight, Users, FileText,
-  ClipboardList, QrCode, Download, Upload, X, Star,
+  ArrowLeft, Pencil, ToggleLeft, Users, FileText,
+  ClipboardList, QrCode, Download, X, Star,
   Calendar, Award, CheckCircle2, Clock, XCircle, Paperclip,
   RotateCcw,
 } from "lucide-react";
@@ -82,7 +83,14 @@ type TabKey = "info" | "docs" | "asistencia";
 export default function VolunteerDetailPage() {
   const { id }    = useParams();
   const router    = useRouter();
+  const { user }  = useAuth();
   const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  // ── Permisos ──────────────────────────────────────────────
+  const isReadOnly = user?.role === "admin";
+  const canRevert  = user?.role === "super_admin" || user?.role === "registrador";
+  const canJustify = user?.role === "super_admin" || user?.role === "registrador";
+  // ─────────────────────────────────────────────────────────
 
   const [volunteer,  setVolunteer]  = useState<any>(null);
   const [management, setManagement] = useState<any[]>([]);
@@ -90,33 +98,17 @@ export default function VolunteerDetailPage() {
   const [attendance, setAttendance] = useState<any[]>([]);
   const [loadingAtt, setLoadingAtt] = useState(false);
 
-  // Justificación
   const [justModal,  setJustModal]  = useState<any>(null);
   const [justReason, setJustReason] = useState("");
   const [justFile,   setJustFile]   = useState<File | null>(null);
   const [justSaving, setJustSaving] = useState(false);
 
-  // Revertir asistencia
   const [revertModal,  setRevertModal]  = useState<any>(null);
   const [revertStatus, setRevertStatus] = useState<"puntual" | "tarde">("puntual");
   const [revertSaving, setRevertSaving] = useState(false);
 
-  // Documentos
   const [docType, setDocType] = useState("carta_compromiso");
   const [docFile, setDocFile] = useState<File | null>(null);
-
-  // Rol del usuario logueado
-  const [userRole, setUserRole] = useState<string>("");
-
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem("user");
-      if (raw) setUserRole(JSON.parse(raw)?.role ?? "");
-    } catch {}
-  }, []);
-
-  const canRevert    = userRole === "super_admin" || userRole === "admin";
-  const canJustify   = userRole === "super_admin" || userRole === "admin";
 
   const generateQR = useCallback(async (vol: any) => {
     if (!canvasRef.current || !vol) return;
@@ -231,30 +223,18 @@ export default function VolunteerDetailPage() {
     </div>
   );
 
-  const age              = calcAge(volunteer.birthDate);
-  const isMinor          = age !== null && age < 18;
-  const st               = getVolunteerStatus(volunteer);
+  const age           = calcAge(volunteer.birthDate);
+  const isMinor       = age !== null && age < 18;
+  const st            = getVolunteerStatus(volunteer);
   const photoUrl = volunteer.photoUrl
     ? volunteer.photoUrl.startsWith("http")
       ? volunteer.photoUrl
       : `${process.env.NEXT_PUBLIC_API_URL}/${volunteer.photoUrl}`
     : null;
-  const requiredDocs     = getRequiredDocs(volunteer.birthDate);
-  const uploadedTypes    = (volunteer.documents ?? []).map((d: any) => d.type);
-  const missingDocs      = requiredDocs.filter(r => !uploadedTypes.includes(r));
+  const requiredDocs  = getRequiredDocs(volunteer.birthDate);
+  const uploadedTypes = (volunteer.documents ?? []).map((d: any) => d.type);
+  const missingDocs   = requiredDocs.filter(r => !uploadedTypes.includes(r));
   const activeManagement = management.filter(m => m.isActive);
-
-  const docOptions = isMinor
-    ? [
-        { value: "carta_compromiso",   label: "Carta Compromiso" },
-        { value: "ficha_beneficencia", label: "Ficha Beneficencia" },
-        { value: "autorizacion_menor", label: "Autorización Menor" },
-      ]
-    : [
-        { value: "carta_compromiso",          label: "Carta Compromiso" },
-        { value: "ficha_beneficencia",        label: "Ficha Beneficencia" },
-        { value: "certificado_unico_laboral", label: "Certificado Único Laboral" },
-      ];
 
   const tabs: { key: TabKey; label: string; icon: React.ReactNode }[] = [
     { key: "info",       label: "Información", icon: <Users size={13} />         },
@@ -265,7 +245,6 @@ export default function VolunteerDetailPage() {
   return (
     <div className="p-4 md:p-6 space-y-4 md:space-y-5 min-h-screen max-w-5xl" style={{ background: "#070d14", color: "#e2e8f0" }}>
 
-      {/* VOLVER */}
       <button onClick={() => router.back()}
         className="flex items-center gap-1.5 text-sm font-medium transition-colors duration-200"
         style={{ color: "rgba(255,255,255,0.40)" }}
@@ -311,32 +290,35 @@ export default function VolunteerDetailPage() {
           </div>
         </div>
 
-        <div className="flex gap-2 flex-shrink-0">
-          {volunteer.status === "activo" ? (
-            <button onClick={deactivateVolunteer}
+        {/* Botones de acción — solo no-admin */}
+        {!isReadOnly && (
+          <div className="flex gap-2 flex-shrink-0">
+            {volunteer.status === "activo" ? (
+              <button onClick={deactivateVolunteer}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-200"
+                style={{ background: "rgba(248,113,113,0.10)", color: "#f87171", border: "1px solid rgba(248,113,113,0.20)" }}
+                onMouseEnter={e => (e.currentTarget.style.background = "rgba(248,113,113,0.20)")}
+                onMouseLeave={e => (e.currentTarget.style.background = "rgba(248,113,113,0.10)")}>
+                <ToggleLeft size={13} /> Desactivar
+              </button>
+            ) : (
+              <button onClick={activateVolunteer}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-200"
+                style={{ background: "rgba(74,222,128,0.10)", color: "#4ade80", border: "1px solid rgba(74,222,128,0.20)" }}
+                onMouseEnter={e => (e.currentTarget.style.background = "rgba(74,222,128,0.20)")}
+                onMouseLeave={e => (e.currentTarget.style.background = "rgba(74,222,128,0.10)")}>
+                <ToggleLeft size={13} /> Activar
+              </button>
+            )}
+            <button onClick={() => router.push(`/admin/volunteers/${id}/edit`)}
               className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-200"
-              style={{ background: "rgba(248,113,113,0.10)", color: "#f87171", border: "1px solid rgba(248,113,113,0.20)" }}
-              onMouseEnter={e => (e.currentTarget.style.background = "rgba(248,113,113,0.20)")}
-              onMouseLeave={e => (e.currentTarget.style.background = "rgba(248,113,113,0.10)")}>
-              <ToggleLeft size={13} /> Desactivar
+              style={{ background: "rgba(232,114,42,0.12)", color: ORANGE, border: "1px solid rgba(232,114,42,0.25)" }}
+              onMouseEnter={e => (e.currentTarget.style.background = "rgba(232,114,42,0.22)")}
+              onMouseLeave={e => (e.currentTarget.style.background = "rgba(232,114,42,0.12)")}>
+              <Pencil size={13} /> Editar
             </button>
-          ) : (
-            <button onClick={activateVolunteer}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-200"
-              style={{ background: "rgba(74,222,128,0.10)", color: "#4ade80", border: "1px solid rgba(74,222,128,0.20)" }}
-              onMouseEnter={e => (e.currentTarget.style.background = "rgba(74,222,128,0.20)")}
-              onMouseLeave={e => (e.currentTarget.style.background = "rgba(74,222,128,0.10)")}>
-              <ToggleLeft size={13} /> Activar
-            </button>
-          )}
-          <button onClick={() => router.push(`/admin/volunteers/${id}/edit`)}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-200"
-            style={{ background: "rgba(232,114,42,0.12)", color: ORANGE, border: "1px solid rgba(232,114,42,0.25)" }}
-            onMouseEnter={e => (e.currentTarget.style.background = "rgba(232,114,42,0.22)")}
-            onMouseLeave={e => (e.currentTarget.style.background = "rgba(232,114,42,0.12)")}>
-            <Pencil size={13} /> Editar
-          </button>
-        </div>
+          </div>
+        )}
       </div>
 
       {/* TABS */}
@@ -359,7 +341,6 @@ export default function VolunteerDetailPage() {
       {tab === "info" && (
         <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* QR */}
             <div className="relative overflow-hidden p-5 flex flex-col items-center gap-3" style={glass(BLUE)}>
               <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: `linear-gradient(90deg,${BLUE},transparent)` }} />
               <h2 className="font-semibold text-sm self-start flex items-center gap-2" style={{ color: "rgba(255,255,255,0.75)" }}>
@@ -370,14 +351,11 @@ export default function VolunteerDetailPage() {
               </div>
               <button onClick={downloadQR}
                 className="flex items-center gap-2 w-full justify-center py-2.5 rounded-xl text-sm font-semibold transition-all duration-200"
-                style={{ background: `linear-gradient(135deg,${BLUE},${BLUE_L})`, color: "#fff", boxShadow: "0 4px 16px rgba(46,111,168,0.30)" }}
-                onMouseEnter={e => (e.currentTarget.style.boxShadow = "0 6px 24px rgba(46,111,168,0.45)")}
-                onMouseLeave={e => (e.currentTarget.style.boxShadow = "0 4px 16px rgba(46,111,168,0.30)")}>
+                style={{ background: `linear-gradient(135deg,${BLUE},${BLUE_L})`, color: "#fff", boxShadow: "0 4px 16px rgba(46,111,168,0.30)" }}>
                 <Download size={14} /> Descargar QR
               </button>
             </div>
 
-            {/* DATOS */}
             <div className="md:col-span-2 relative overflow-hidden p-5 space-y-4" style={glass()}>
               <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: `linear-gradient(90deg,${BLUE_L},transparent)` }} />
               <h2 className="font-semibold text-sm" style={{ color: "rgba(255,255,255,0.75)" }}>Datos personales</h2>
@@ -402,16 +380,13 @@ export default function VolunteerDetailPage() {
                   </div>
                 ))}
               </div>
-
               {missingDocs.length > 0 && volunteer.status !== "activo" && (
                 <div className="p-3 rounded-xl" style={{ background: "rgba(232,114,42,0.10)", border: "1px solid rgba(232,114,42,0.25)" }}>
                   <p className="text-xs font-semibold mb-1.5" style={{ color: ORANGE }}>Documentos pendientes:</p>
                   <div className="flex flex-wrap gap-1">
                     {missingDocs.map(d => (
                       <span key={d} className="text-xs px-2 py-0.5 rounded-full"
-                        style={{ background: "rgba(232,114,42,0.15)", color: ORANGE }}>
-                        {DOC_LABELS[d]}
-                      </span>
+                        style={{ background: "rgba(232,114,42,0.15)", color: ORANGE }}>{DOC_LABELS[d]}</span>
                     ))}
                   </div>
                 </div>
@@ -419,7 +394,6 @@ export default function VolunteerDetailPage() {
             </div>
           </div>
 
-          {/* GESTIÓN */}
           {activeManagement.length > 0 && (
             <div className="relative overflow-hidden p-5" style={glass("#9b6dff")}>
               <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: "linear-gradient(90deg,#9b6dff,transparent)" }} />
@@ -475,32 +449,23 @@ export default function VolunteerDetailPage() {
               Requiere: {requiredDocs.map(d => DOC_LABELS[d]).join(", ")}
             </span>
           </div>
-
           <div className="relative overflow-hidden p-5" style={glass(BLUE)}>
             <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: `linear-gradient(90deg,${BLUE},transparent)` }} />
             <h2 className="font-semibold text-sm mb-4 flex items-center gap-2" style={{ color: "rgba(255,255,255,0.80)" }}>
               <FileText size={14} color={BLUE_L} /> Documentos subidos
             </h2>
-
             <div className="mb-4 space-y-2">
               {requiredDocs.map(docKey => {
                 const uploaded = uploadedTypes.includes(docKey);
                 const doc = volunteer.documents?.find((d: any) => d.type === docKey);
                 return (
                   <div key={docKey} className="flex items-center justify-between p-3 rounded-xl"
-                    style={{
-                      background: uploaded ? "rgba(74,222,128,0.06)" : "rgba(248,113,113,0.06)",
-                      border: `1px solid ${uploaded ? "rgba(74,222,128,0.18)" : "rgba(248,113,113,0.18)"}`,
-                    }}>
+                    style={{ background: uploaded ? "rgba(74,222,128,0.06)" : "rgba(248,113,113,0.06)", border: `1px solid ${uploaded ? "rgba(74,222,128,0.18)" : "rgba(248,113,113,0.18)"}` }}>
                     <div className="flex items-center gap-2">
                       <span style={{ color: uploaded ? "#4ade80" : "#f87171", fontSize: 16 }}>{uploaded ? "✓" : "✗"}</span>
                       <div>
                         <p className="text-sm font-medium" style={{ color: "rgba(255,255,255,0.75)" }}>{DOC_LABELS[docKey]}</p>
-                        {doc && (
-                          <p className="text-xs mt-0.5" style={{ color: "rgba(255,255,255,0.30)" }}>
-                            Subido el {new Date(doc.uploadedAt).toLocaleDateString("es-PE")}
-                          </p>
-                        )}
+                        {doc && <p className="text-xs mt-0.5" style={{ color: "rgba(255,255,255,0.30)" }}>Subido el {new Date(doc.uploadedAt).toLocaleDateString("es-PE")}</p>}
                       </div>
                     </div>
                     {doc && (
@@ -517,30 +482,24 @@ export default function VolunteerDetailPage() {
               })}
             </div>
 
-            {volunteer.documents?.filter((d: any) => !requiredDocs.includes(d.type)).length > 0 && (
-              <div>
-                <p className="text-xs font-semibold mb-2 uppercase tracking-widest" style={{ color: "rgba(255,255,255,0.30)" }}>Otros documentos</p>
-                <div className="space-y-2">
-                  {volunteer.documents.filter((d: any) => !requiredDocs.includes(d.type)).map((doc: any) => (
-                    <div key={doc.id} className="flex items-center justify-between p-3 rounded-xl"
-                      style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}>
-                      <div>
-                        <p className="text-sm font-medium" style={{ color: "rgba(255,255,255,0.75)" }}>
-                          {DOC_LABELS[doc.type] ?? doc.type.replace(/_/g, " ")}
-                        </p>
-                        <p className="text-xs mt-0.5" style={{ color: "rgba(255,255,255,0.30)" }}>
-                          {new Date(doc.uploadedAt).toLocaleDateString("es-PE")}
-                        </p>
-                      </div>
-                      <button onClick={() => downloadDocument(doc.id, doc.type)}
-                        className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all duration-200"
-                        style={{ background: "rgba(46,111,168,0.12)", color: BLUE_L, border: "1px solid rgba(46,111,168,0.22)" }}
-                        onMouseEnter={e => (e.currentTarget.style.background = "rgba(46,111,168,0.22)")}
-                        onMouseLeave={e => (e.currentTarget.style.background = "rgba(46,111,168,0.12)")}>
-                        <Download size={12} /> Descargar
-                      </button>
-                    </div>
-                  ))}
+            {/* Subir documento — solo no-admin */}
+            {!isReadOnly && (
+              <div className="pt-4 space-y-3" style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}>
+                <h3 className="text-xs font-semibold uppercase tracking-widest" style={{ color: "rgba(255,255,255,0.30)" }}>Subir documento</h3>
+                <div className="flex gap-2 flex-wrap">
+                  <select style={{ ...IS, width: "auto" }} value={docType} onChange={e => setDocType(e.target.value)}>
+                    {requiredDocs.map(d => (
+                      <option key={d} value={d} style={{ background: "#0d1424" }}>{DOC_LABELS[d]}</option>
+                    ))}
+                  </select>
+                  <input type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                    className="text-sm flex-1" style={{ color: "rgba(255,255,255,0.55)" }}
+                    onChange={e => setDocFile(e.target.files?.[0] ?? null)} />
+                  <button onClick={uploadDocument}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200"
+                    style={{ background: `linear-gradient(135deg,${BLUE},${BLUE_L})`, color: "#fff" }}>
+                    Subir
+                  </button>
                 </div>
               </div>
             )}
@@ -586,31 +545,12 @@ export default function VolunteerDetailPage() {
                       style={{ borderBottom: index < attendance.length - 1 ? "1px solid rgba(255,255,255,0.04)" : "none", transition: "background 0.15s" }}
                       onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.02)")}
                       onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
-                      <td className="px-4 py-3 font-medium text-sm" style={{ color: "rgba(255,255,255,0.75)" }}>
-                        {a.sessionName ?? a.session?.name ?? "—"}
-                      </td>
-                      <td className="px-4 py-3 text-xs whitespace-nowrap" style={{ color: "rgba(255,255,255,0.50)" }}>
-                        {a.date ?? a.session?.date ?? "—"}
-                      </td>
+                      <td className="px-4 py-3 font-medium text-sm" style={{ color: "rgba(255,255,255,0.75)" }}>{a.sessionName ?? a.session?.name ?? "—"}</td>
+                      <td className="px-4 py-3 text-xs whitespace-nowrap" style={{ color: "rgba(255,255,255,0.50)" }}>{a.date ?? a.session?.date ?? "—"}</td>
                       <td className="px-4 py-3">
-                        {statusUp === "PUNTUAL" && (
-                          <span className="flex items-center gap-1 w-fit text-xs font-semibold px-2.5 py-1 rounded-full"
-                            style={{ background: "rgba(74,222,128,0.12)", color: "#4ade80" }}>
-                            <CheckCircle2 size={10} /> Puntual
-                          </span>
-                        )}
-                        {statusUp === "TARDE" && (
-                          <span className="flex items-center gap-1 w-fit text-xs font-semibold px-2.5 py-1 rounded-full"
-                            style={{ background: "rgba(232,114,42,0.12)", color: ORANGE }}>
-                            <Clock size={10} /> Tarde
-                          </span>
-                        )}
-                        {statusUp === "FALTA" && (
-                          <span className="flex items-center gap-1 w-fit text-xs font-semibold px-2.5 py-1 rounded-full"
-                            style={{ background: "rgba(248,113,113,0.12)", color: "#f87171" }}>
-                            <XCircle size={10} /> Falta
-                          </span>
-                        )}
+                        {statusUp === "PUNTUAL" && <span className="flex items-center gap-1 w-fit text-xs font-semibold px-2.5 py-1 rounded-full" style={{ background: "rgba(74,222,128,0.12)", color: "#4ade80" }}><CheckCircle2 size={10} /> Puntual</span>}
+                        {statusUp === "TARDE"   && <span className="flex items-center gap-1 w-fit text-xs font-semibold px-2.5 py-1 rounded-full" style={{ background: "rgba(232,114,42,0.12)", color: ORANGE }}><Clock size={10} /> Tarde</span>}
+                        {statusUp === "FALTA"   && <span className="flex items-center gap-1 w-fit text-xs font-semibold px-2.5 py-1 rounded-full" style={{ background: "rgba(248,113,113,0.12)", color: "#f87171" }}><XCircle size={10} /> Falta</span>}
                       </td>
                       <td className="px-4 py-3 text-xs" style={{ color: "rgba(255,255,255,0.40)" }}>
                         {a.registeredAt ? new Date(a.registeredAt).toLocaleTimeString("es-PE") : "—"}
@@ -622,14 +562,10 @@ export default function VolunteerDetailPage() {
                               style={{ background: STATUS_JUST[just.status]?.bg, color: STATUS_JUST[just.status]?.color }}>
                               {STATUS_JUST[just.status]?.label}
                             </span>
-                            {just.reviewNote && (
-                              <p className="text-xs mt-1 italic" style={{ color: "rgba(255,255,255,0.35)" }}>{just.reviewNote}</p>
-                            )}
+                            {just.reviewNote && <p className="text-xs mt-1 italic" style={{ color: "rgba(255,255,255,0.35)" }}>{just.reviewNote}</p>}
                           </div>
                         ) : (
-                          <span className="text-xs" style={{ color: "rgba(255,255,255,0.25)" }}>
-                            {statusUp === "PUNTUAL" ? "—" : "Sin justificación"}
-                          </span>
+                          <span className="text-xs" style={{ color: "rgba(255,255,255,0.25)" }}>{statusUp === "PUNTUAL" ? "—" : "Sin justificación"}</span>
                         )}
                       </td>
                       <td className="px-4 py-3">
@@ -644,8 +580,7 @@ export default function VolunteerDetailPage() {
                             </button>
                           )}
                           {canRevertRow && (
-                            <button
-                              onClick={() => { setRevertModal(a); setRevertStatus("puntual"); }}
+                            <button onClick={() => { setRevertModal(a); setRevertStatus("puntual"); }}
                               className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-lg whitespace-nowrap transition-all duration-200"
                               style={{ background: "rgba(74,222,128,0.10)", color: GREEN, border: "1px solid rgba(74,222,128,0.22)" }}
                               onMouseEnter={e => (e.currentTarget.style.background = "rgba(74,222,128,0.20)")}
@@ -675,27 +610,15 @@ export default function VolunteerDetailPage() {
             <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: `linear-gradient(90deg,${BLUE},${BLUE_L},transparent)` }} />
             <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
               <h2 className="font-bold text-sm" style={{ color: "#f1f5f9" }}>Agregar justificación</h2>
-              <button onClick={() => setJustModal(null)}
-                className="w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200"
-                style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.50)" }}
-                onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.12)")}
-                onMouseLeave={e => (e.currentTarget.style.background = "rgba(255,255,255,0.06)")}>
+              <button onClick={() => setJustModal(null)} className="w-8 h-8 rounded-lg flex items-center justify-center"
+                style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.50)" }}>
                 <X size={14} />
               </button>
             </div>
             <div className="p-6 space-y-4">
-              <div className="p-3 rounded-xl space-y-1.5 text-sm"
-                style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}>
+              <div className="p-3 rounded-xl space-y-1.5 text-sm" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}>
                 <p><span style={{ color: "rgba(255,255,255,0.35)" }}>Sesión:</span> <b style={{ color: "#f1f5f9" }}>{justModal.sessionName ?? justModal.session?.name}</b></p>
                 <p><span style={{ color: "rgba(255,255,255,0.35)" }}>Fecha:</span> <span style={{ color: "rgba(255,255,255,0.65)" }}>{justModal.date ?? justModal.session?.date}</span></p>
-                <p className="flex items-center gap-2"><span style={{ color: "rgba(255,255,255,0.35)" }}>Estado:</span>
-                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full"
-                    style={justModal.status === "FALTA"
-                      ? { background: "rgba(248,113,113,0.12)", color: "#f87171" }
-                      : { background: "rgba(232,114,42,0.12)", color: ORANGE }}>
-                    {justModal.status}
-                  </span>
-                </p>
               </div>
               <div>
                 <label className="text-xs font-medium mb-2 uppercase tracking-widest block" style={{ color: "rgba(255,255,255,0.40)" }}>
@@ -714,26 +637,17 @@ export default function VolunteerDetailPage() {
                 <input type="file" accept=".jpg,.jpeg,.png,.pdf,.doc,.docx"
                   className="text-sm" style={{ color: "rgba(255,255,255,0.55)" }}
                   onChange={e => setJustFile(e.target.files?.[0] ?? null)} />
-                {justFile && (
-                  <p className="text-xs mt-1 flex items-center gap-1" style={{ color: "#4ade80" }}>
-                    <Paperclip size={10} /> {justFile.name}
-                  </p>
-                )}
+                {justFile && <p className="text-xs mt-1 flex items-center gap-1" style={{ color: "#4ade80" }}><Paperclip size={10} /> {justFile.name}</p>}
               </div>
               <div className="flex gap-3 pt-1">
                 <button onClick={() => setJustModal(null)}
-                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200"
-                  style={{ background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.50)", border: "1px solid rgba(255,255,255,0.09)" }}
-                  onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.09)")}
-                  onMouseLeave={e => (e.currentTarget.style.background = "rgba(255,255,255,0.05)")}>
+                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
+                  style={{ background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.50)", border: "1px solid rgba(255,255,255,0.09)" }}>
                   Cancelar
                 </button>
                 <button onClick={submitJustification} disabled={justSaving}
-                  className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200"
-                  style={{
-                    background: justSaving ? "rgba(46,111,168,0.40)" : `linear-gradient(135deg,${BLUE},${BLUE_L})`,
-                    color: "#fff", cursor: justSaving ? "not-allowed" : "pointer",
-                  }}>
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold"
+                  style={{ background: justSaving ? "rgba(46,111,168,0.40)" : `linear-gradient(135deg,${BLUE},${BLUE_L})`, color: "#fff", cursor: justSaving ? "not-allowed" : "pointer" }}>
                   {justSaving && <div className="w-4 h-4 rounded-full animate-spin" style={{ border: "2px solid rgba(255,255,255,0.3)", borderTopColor: "#fff" }} />}
                   {justSaving ? "Enviando..." : "Enviar justificación"}
                 </button>
@@ -743,7 +657,7 @@ export default function VolunteerDetailPage() {
         </div>
       )}
 
-      {/* ── MODAL REVERTIR ASISTENCIA ── */}
+      {/* ── MODAL REVERTIR ── */}
       {revertModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{ background: "rgba(0,0,0,0.70)", backdropFilter: "blur(6px)" }}
@@ -752,48 +666,29 @@ export default function VolunteerDetailPage() {
             style={{ ...glass("#4ade80"), borderRadius: "20px" }}
             onClick={e => e.stopPropagation()}>
             <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: `linear-gradient(90deg,${GREEN},transparent)` }} />
-
             <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
               <h2 className="font-bold text-sm flex items-center gap-2" style={{ color: "#f1f5f9" }}>
                 <RotateCcw size={14} color={GREEN} /> Revertir asistencia
               </h2>
-              <button onClick={() => setRevertModal(null)}
-                className="w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200"
-                style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.50)" }}
-                onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.12)")}
-                onMouseLeave={e => (e.currentTarget.style.background = "rgba(255,255,255,0.06)")}>
+              <button onClick={() => setRevertModal(null)} className="w-8 h-8 rounded-lg flex items-center justify-center"
+                style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.50)" }}>
                 <X size={14} />
               </button>
             </div>
-
             <div className="p-6 space-y-4">
-              {/* Info de la sesión */}
-              <div className="p-3 rounded-xl space-y-1.5 text-sm"
-                style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}>
+              <div className="p-3 rounded-xl space-y-1.5 text-sm" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}>
                 <p><span style={{ color: "rgba(255,255,255,0.35)" }}>Sesión:</span> <b style={{ color: "#f1f5f9" }}>{revertModal.sessionName}</b></p>
                 <p><span style={{ color: "rgba(255,255,255,0.35)" }}>Fecha:</span> <span style={{ color: "rgba(255,255,255,0.65)" }}>{revertModal.date}</span></p>
-                <p className="flex items-center gap-2">
-                  <span style={{ color: "rgba(255,255,255,0.35)" }}>Estado actual:</span>
-                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full"
-                    style={{ background: "rgba(248,113,113,0.12)", color: "#f87171" }}>
-                    Falta
-                  </span>
-                </p>
               </div>
-
-              {/* Selector de nuevo estado */}
               <div>
-                <label className="text-xs font-medium mb-2 uppercase tracking-widest block" style={{ color: "rgba(255,255,255,0.40)" }}>
-                  Cambiar a
-                </label>
+                <label className="text-xs font-medium mb-2 uppercase tracking-widest block" style={{ color: "rgba(255,255,255,0.40)" }}>Cambiar a</label>
                 <div className="flex gap-3">
                   {(["puntual", "tarde"] as const).map(s => (
-                    <button key={s}
-                      onClick={() => setRevertStatus(s)}
-                      className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-all duration-200 border"
+                    <button key={s} onClick={() => setRevertStatus(s)}
+                      className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold border"
                       style={revertStatus === s
                         ? s === "puntual"
-                          ? { background: "rgba(74,222,128,0.18)", color: GREEN,  borderColor: "rgba(74,222,128,0.45)" }
+                          ? { background: "rgba(74,222,128,0.18)", color: GREEN, borderColor: "rgba(74,222,128,0.45)" }
                           : { background: "rgba(232,114,42,0.18)", color: ORANGE, borderColor: "rgba(232,114,42,0.45)" }
                         : { background: "rgba(255,255,255,0.04)", color: "rgba(255,255,255,0.35)", borderColor: "rgba(255,255,255,0.09)" }}>
                       {s === "puntual" ? <><CheckCircle2 size={14} /> Puntual</> : <><Clock size={14} /> Tarde</>}
@@ -801,31 +696,20 @@ export default function VolunteerDetailPage() {
                   ))}
                 </div>
               </div>
-
               <div className="p-3 rounded-xl text-xs" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
                 <p style={{ color: "rgba(255,255,255,0.35)" }}>
-                  ⚠️ Esta acción cambiará el estado de la falta a <b style={{ color: revertStatus === "puntual" ? GREEN : ORANGE }}>{revertStatus}</b> aunque la sesión esté cerrada. Se registrará tu usuario como responsable del cambio.
+                  ⚠️ Esta acción cambiará el estado de la falta a <b style={{ color: revertStatus === "puntual" ? GREEN : ORANGE }}>{revertStatus}</b> aunque la sesión esté cerrada.
                 </p>
               </div>
-
               <div className="flex gap-3 pt-1">
                 <button onClick={() => setRevertModal(null)}
-                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200"
-                  style={{ background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.50)", border: "1px solid rgba(255,255,255,0.09)" }}
-                  onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.09)")}
-                  onMouseLeave={e => (e.currentTarget.style.background = "rgba(255,255,255,0.05)")}>
+                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
+                  style={{ background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.50)", border: "1px solid rgba(255,255,255,0.09)" }}>
                   Cancelar
                 </button>
                 <button onClick={submitRevert} disabled={revertSaving}
-                  className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200"
-                  style={{
-                    background: revertSaving ? "rgba(74,222,128,0.25)" : "rgba(74,222,128,0.20)",
-                    color: GREEN,
-                    border: `1px solid rgba(74,222,128,0.35)`,
-                    cursor: revertSaving ? "not-allowed" : "pointer",
-                  }}
-                  onMouseEnter={e => { if (!revertSaving) (e.currentTarget.style.background = "rgba(74,222,128,0.30)"); }}
-                  onMouseLeave={e => { if (!revertSaving) (e.currentTarget.style.background = "rgba(74,222,128,0.20)"); }}>
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold"
+                  style={{ background: revertSaving ? "rgba(74,222,128,0.25)" : "rgba(74,222,128,0.20)", color: GREEN, border: "1px solid rgba(74,222,128,0.35)", cursor: revertSaving ? "not-allowed" : "pointer" }}>
                   {revertSaving && <div className="w-4 h-4 rounded-full animate-spin" style={{ border: "2px solid rgba(74,222,128,0.3)", borderTopColor: GREEN }} />}
                   {revertSaving ? "Guardando..." : "Confirmar cambio"}
                 </button>

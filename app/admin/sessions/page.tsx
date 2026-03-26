@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import axios from "@/lib/axios";
+import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { CalendarDays, Plus, ChevronDown, X, CheckCircle2, Clock, XCircle } from "lucide-react";
 
@@ -53,6 +54,9 @@ function StatusBadge({ isActive }: { isActive: boolean }) {
 }
 
 export default function SessionsPage() {
+  const { user } = useAuth();
+  const isReadOnly = user?.role === "admin";
+
   const [sessions, setSessions]             = useState<Session[]>([]);
   const [modules, setModules]               = useState<Module[]>([]);
   const [selectedModule, setSelectedModule] = useState("");
@@ -106,17 +110,23 @@ export default function SessionsPage() {
       <div className="flex items-center justify-between gap-3">
         <div>
           <h1 className="text-xl md:text-2xl font-bold" style={{ color: "#f1f5f9", letterSpacing: "-0.3px" }}>Sesiones</h1>
-          <p className="text-xs md:text-sm mt-0.5" style={{ color: "rgba(255,255,255,0.35)" }}>Gestión de sesiones de asistencia</p>
+          <p className="text-xs md:text-sm mt-0.5" style={{ color: "rgba(255,255,255,0.35)" }}>
+            {isReadOnly ? "Vista de sesiones (solo lectura)" : "Gestión de sesiones de asistencia"}
+          </p>
         </div>
-        <button onClick={() => router.push("/admin/sessions/new")}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200"
-          style={{ background: `linear-gradient(135deg,${BLUE},${BLUE_L})`, color: "#fff", boxShadow: `0 4px 16px rgba(46,111,168,0.35)` }}
-          onMouseEnter={e => (e.currentTarget.style.boxShadow = `0 6px 24px rgba(46,111,168,0.50)`)}
-          onMouseLeave={e => (e.currentTarget.style.boxShadow = `0 4px 16px rgba(46,111,168,0.35)`)}>
-          <Plus size={15} />
-          <span className="hidden sm:inline">Crear Sesión</span>
-          <span className="sm:hidden">Nueva</span>
-        </button>
+
+        {/* Crear sesión — solo no-admin */}
+        {!isReadOnly && (
+          <button onClick={() => router.push("/admin/sessions/new")}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200"
+            style={{ background: `linear-gradient(135deg,${BLUE},${BLUE_L})`, color: "#fff", boxShadow: `0 4px 16px rgba(46,111,168,0.35)` }}
+            onMouseEnter={e => (e.currentTarget.style.boxShadow = `0 6px 24px rgba(46,111,168,0.50)`)}
+            onMouseLeave={e => (e.currentTarget.style.boxShadow = `0 4px 16px rgba(46,111,168,0.35)`)}>
+            <Plus size={15} />
+            <span className="hidden sm:inline">Crear Sesión</span>
+            <span className="sm:hidden">Nueva</span>
+          </button>
+        )}
       </div>
 
       {/* FILTROS */}
@@ -204,6 +214,7 @@ export default function SessionsPage() {
 
                   <td className="px-3 py-3">
                     <div className="flex gap-1.5">
+                      {/* Ver — siempre visible */}
                       <button onClick={() => router.push(`/admin/sessions/${s.id}`)}
                         className="text-xs font-semibold px-2.5 py-1.5 rounded-lg transition-all duration-200"
                         style={{ background: "rgba(46,111,168,0.12)", color: BLUE_L, border: "1px solid rgba(46,111,168,0.22)" }}
@@ -211,20 +222,26 @@ export default function SessionsPage() {
                         onMouseLeave={e => (e.currentTarget.style.background = "rgba(46,111,168,0.12)")}>
                         Ver
                       </button>
-                      <button onClick={() => router.push(`/admin/sessions/${s.id}/edit`)}
-                        className="text-xs font-semibold px-2.5 py-1.5 rounded-lg transition-all duration-200"
-                        style={{ background: "rgba(232,114,42,0.10)", color: ORANGE, border: "1px solid rgba(232,114,42,0.18)" }}
-                        onMouseEnter={e => (e.currentTarget.style.background = "rgba(232,114,42,0.20)")}
-                        onMouseLeave={e => (e.currentTarget.style.background = "rgba(232,114,42,0.10)")}>
-                        Editar
-                      </button>
-                      <button onClick={() => handleDelete(s.id)} disabled={deletingId === s.id}
-                        className="text-xs font-semibold px-2.5 py-1.5 rounded-lg transition-all duration-200"
-                        style={{ background: "rgba(248,113,113,0.10)", color: "#f87171", border: "1px solid rgba(248,113,113,0.18)", opacity: deletingId === s.id ? 0.5 : 1 }}
-                        onMouseEnter={e => (e.currentTarget.style.background = "rgba(248,113,113,0.20)")}
-                        onMouseLeave={e => (e.currentTarget.style.background = "rgba(248,113,113,0.10)")}>
-                        {deletingId === s.id ? "..." : "Eliminar"}
-                      </button>
+
+                      {/* Editar y Eliminar — solo no-admin */}
+                      {!isReadOnly && (
+                        <>
+                          <button onClick={() => router.push(`/admin/sessions/${s.id}/edit`)}
+                            className="text-xs font-semibold px-2.5 py-1.5 rounded-lg transition-all duration-200"
+                            style={{ background: "rgba(232,114,42,0.10)", color: ORANGE, border: "1px solid rgba(232,114,42,0.18)" }}
+                            onMouseEnter={e => (e.currentTarget.style.background = "rgba(232,114,42,0.20)")}
+                            onMouseLeave={e => (e.currentTarget.style.background = "rgba(232,114,42,0.10)")}>
+                            Editar
+                          </button>
+                          <button onClick={() => handleDelete(s.id)} disabled={deletingId === s.id}
+                            className="text-xs font-semibold px-2.5 py-1.5 rounded-lg transition-all duration-200"
+                            style={{ background: "rgba(248,113,113,0.10)", color: "#f87171", border: "1px solid rgba(248,113,113,0.18)", opacity: deletingId === s.id ? 0.5 : 1 }}
+                            onMouseEnter={e => (e.currentTarget.style.background = "rgba(248,113,113,0.20)")}
+                            onMouseLeave={e => (e.currentTarget.style.background = "rgba(248,113,113,0.10)")}>
+                            {deletingId === s.id ? "..." : "Eliminar"}
+                          </button>
+                        </>
+                      )}
                     </div>
                   </td>
                 </tr>

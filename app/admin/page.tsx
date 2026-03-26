@@ -13,6 +13,7 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   LineChart, Line, CartesianGrid, Legend,
 } from "recharts";
+import DownloadCards from "@/components/DownloadCard";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 
@@ -145,6 +146,9 @@ function VolunteerDashboard() {
           borderRadius: "50%", background: `radial-gradient(circle,${BLUE}18 0%,transparent 70%)`,
           pointerEvents: "none",
         }} />
+
+        {/* ── DESCARGAS ── */}
+        <DownloadCards />
 
         <div className="relative flex items-center gap-4">
           <div className="w-14 h-14 md:w-16 md:h-16 rounded-2xl flex-shrink-0 flex items-center justify-center overflow-hidden"
@@ -320,7 +324,8 @@ function AdminDashboard() {
   const [stats,   setStats]   = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  const isRegistrador = user?.role === "registrador";
+  const canSeeJustifications =
+  user?.role === "super_admin" || user?.role === "registrador";
 
   useEffect(() => {
     api.get("/attendance/dashboard-stats")
@@ -339,12 +344,11 @@ function AdminDashboard() {
     </div>
   );
 
-  // Card de justificaciones solo visible para admin y super_admin
   const statCards = [
     { label: "Voluntarios activos",     value: stats?.totals?.volunteers ?? 0, icon: Users,          color: BLUE_L,    link: "/admin/volunteers" },
     { label: "Total sesiones",          value: stats?.totals?.sessions   ?? 0, icon: CalendarDays,   color: "#9b6dff", link: "/admin/sessions"   },
     { label: "Registros de asistencia", value: stats?.totals?.attendances ?? 0, icon: ClipboardCheck, color: "#4ade80", link: "/admin/attendance" },
-    ...(!isRegistrador ? [{
+    ...(canSeeJustifications ? [{
       label: "Justificaciones pendientes",
       value: stats?.totals?.pendingJustifications ?? 0,
       icon:  AlertCircle,
@@ -392,6 +396,9 @@ function AdminDashboard() {
             Sistema <span className="font-bold" style={{ color: ORANGE }}>Voluntades+</span>
           </div>
         </div>
+
+        {/* ── DESCARGAS ── */}
+        <DownloadCards />
 
         {/* STAT CARDS */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
@@ -606,7 +613,7 @@ function AdminDashboard() {
 }
 
 // ══════════════════════════════════════════════════════════════
-// ENTRY POINT — detecta rol y renderiza el dashboard correcto
+// ENTRY POINT
 // ══════════════════════════════════════════════════════════════
 export default function DashboardPage() {
   const { user } = useAuth();

@@ -2,12 +2,10 @@
 
 import { useEffect, useState } from "react";
 import api from "@/lib/axios";
+import { useAuth } from "@/context/AuthContext";
 import {
   Plus, Users2, Trash2, CheckSquare, Square, Award, AlignLeft, Save,
-  QrCode, Download, Key, CheckCircle, AlertCircle, User, Phone,
-  MapPin, Droplets, BookOpen, Calendar, ClipboardList, FileCheck,
-  Clock, XCircle, X, Search, UserCheck, CreditCard, ScanLine, Filter,
-  ChevronRight, ChevronLeft, BarChart2, ChevronDown,
+  X, ChevronDown,
 } from "lucide-react";
 
 const PAGE_SIZE = 15;
@@ -50,6 +48,9 @@ function Label({ icon, children, required }: { icon?: React.ReactNode; children:
 }
 
 export default function ManagementPage() {
+  const { user }   = useAuth();
+  const isReadOnly = user?.role === "admin";
+
   const [members, setMembers]       = useState<any[]>([]);
   const [volunteers, setVolunteers] = useState<any[]>([]);
   const [periods, setPeriods]       = useState<any[]>([]);
@@ -145,23 +146,28 @@ export default function ManagementPage() {
       <div className="flex items-center justify-between gap-3">
         <div>
           <h1 className="text-xl md:text-2xl font-bold" style={{ color: "#f1f5f9", letterSpacing: "-0.3px" }}>Gestión</h1>
-          <p className="text-xs md:text-sm mt-0.5" style={{ color: "rgba(255,255,255,0.35)" }}>Equipo de gestión de Voluntades+</p>
+          <p className="text-xs md:text-sm mt-0.5" style={{ color: "rgba(255,255,255,0.35)" }}>
+            {isReadOnly ? "Vista del equipo de gestión (solo lectura)" : "Equipo de gestión de Voluntades+"}
+          </p>
         </div>
-        <button onClick={openNew}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200"
-          style={{ background: `linear-gradient(135deg,${VIOLET},#b48aff)`, color: "#fff", boxShadow: "0 4px 16px rgba(155,109,255,0.35)" }}
-          onMouseEnter={e => (e.currentTarget.style.boxShadow = "0 6px 24px rgba(155,109,255,0.50)")}
-          onMouseLeave={e => (e.currentTarget.style.boxShadow = "0 4px 16px rgba(155,109,255,0.35)")}>
-          <Plus size={15} />
-          <span className="hidden sm:inline">Agregar miembro</span>
-          <span className="sm:hidden">Agregar</span>
-        </button>
+
+        {/* Agregar miembro — solo no-admin */}
+        {!isReadOnly && (
+          <button onClick={openNew}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200"
+            style={{ background: `linear-gradient(135deg,${VIOLET},#b48aff)`, color: "#fff", boxShadow: "0 4px 16px rgba(155,109,255,0.35)" }}
+            onMouseEnter={e => (e.currentTarget.style.boxShadow = "0 6px 24px rgba(155,109,255,0.50)")}
+            onMouseLeave={e => (e.currentTarget.style.boxShadow = "0 4px 16px rgba(155,109,255,0.35)")}>
+            <Plus size={15} />
+            <span className="hidden sm:inline">Agregar miembro</span>
+            <span className="sm:hidden">Agregar</span>
+          </button>
+        )}
       </div>
 
       {/* FILTRO PERIODO */}
       <div className="flex items-center gap-2 flex-wrap">
-        <select style={IS as any}
-          className="w-auto"
+        <select style={IS as any} className="w-auto"
           value={filterPeriod} onChange={e => { setFilterPeriod(e.target.value); setVisible(PAGE_SIZE); }}>
           <option value="" style={{ background: "#0d1424" }}>Todos los periodos</option>
           {periods.map(p => <option key={p.id} value={p.id} style={{ background: "#0d1424" }}>{p.name}</option>)}
@@ -192,9 +198,11 @@ export default function ManagementPage() {
             <Users2 size={26} color={VIOLET} />
           </div>
           <p className="font-semibold" style={{ color: "rgba(255,255,255,0.50)" }}>No hay miembros de gestión</p>
-          <button onClick={openNew} className="text-sm font-medium" style={{ color: VIOLET }}>
-            Agregar el primer miembro →
-          </button>
+          {!isReadOnly && (
+            <button onClick={openNew} className="text-sm font-medium" style={{ color: VIOLET }}>
+              Agregar el primer miembro →
+            </button>
+          )}
         </div>
       ) : (
         <>
@@ -204,7 +212,7 @@ export default function ManagementPage() {
               <table className="w-full text-sm min-w-[640px]">
                 <thead>
                   <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
-                    {["Voluntario","Módulo","Periodo","Cargos","Estado","Notas","Acciones"].map(h => (
+                    {["Voluntario","Módulo","Periodo","Cargos","Estado","Notas", ...(!isReadOnly ? ["Acciones"] : [])].map(h => (
                       <th key={h} className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-widest whitespace-nowrap"
                         style={{ color: "rgba(255,255,255,0.30)" }}>{h}</th>
                     ))}
@@ -221,7 +229,6 @@ export default function ManagementPage() {
                       onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.03)")}
                       onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
 
-                      {/* Voluntario */}
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2.5">
                           {m.volunteer?.photoUrl ? (
@@ -240,12 +247,10 @@ export default function ManagementPage() {
                         </div>
                       </td>
 
-                      {/* Módulo */}
                       <td className="px-4 py-3 text-xs" style={{ color: "rgba(255,255,255,0.45)" }}>
                         {m.volunteer?.module?.name ?? <span style={{ color: "rgba(255,255,255,0.20)" }}>Sin módulo</span>}
                       </td>
 
-                      {/* Periodo */}
                       <td className="px-4 py-3">
                         {m.period ? (
                           <span className="text-xs font-semibold px-2.5 py-1 rounded-full"
@@ -255,7 +260,6 @@ export default function ManagementPage() {
                         ) : <span className="text-xs" style={{ color: "rgba(255,255,255,0.25)" }}>—</span>}
                       </td>
 
-                      {/* Cargos */}
                       <td className="px-4 py-3">
                         <div className="flex flex-wrap gap-1">
                           {m.positions?.length > 0
@@ -269,7 +273,6 @@ export default function ManagementPage() {
                         </div>
                       </td>
 
-                      {/* Estado */}
                       <td className="px-4 py-3">
                         <span className="text-xs font-semibold px-2.5 py-1 rounded-full"
                           style={m.isActive
@@ -279,32 +282,33 @@ export default function ManagementPage() {
                         </span>
                       </td>
 
-                      {/* Notas */}
                       <td className="px-4 py-3 max-w-[150px]">
                         <span className="text-xs truncate block italic" style={{ color: "rgba(255,255,255,0.35)" }}>
                           {m.notes || "—"}
                         </span>
                       </td>
 
-                      {/* Acciones */}
-                      <td className="px-4 py-3">
-                        <div className="flex gap-1.5">
-                          <button onClick={() => openEdit(m)}
-                            className="text-xs font-semibold px-2.5 py-1.5 rounded-lg transition-all duration-200"
-                            style={{ background: "rgba(232,114,42,0.10)", color: ORANGE, border: "1px solid rgba(232,114,42,0.18)" }}
-                            onMouseEnter={e => (e.currentTarget.style.background = "rgba(232,114,42,0.20)")}
-                            onMouseLeave={e => (e.currentTarget.style.background = "rgba(232,114,42,0.10)")}>
-                            Editar
-                          </button>
-                          <button onClick={() => remove(m.id, m.volunteer?.user?.name ?? "?")}
-                            className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-lg transition-all duration-200"
-                            style={{ background: "rgba(248,113,113,0.10)", color: "#f87171", border: "1px solid rgba(248,113,113,0.18)" }}
-                            onMouseEnter={e => (e.currentTarget.style.background = "rgba(248,113,113,0.20)")}
-                            onMouseLeave={e => (e.currentTarget.style.background = "rgba(248,113,113,0.10)")}>
-                            <Trash2 size={11} /> Quitar
-                          </button>
-                        </div>
-                      </td>
+                      {/* Acciones — solo no-admin */}
+                      {!isReadOnly && (
+                        <td className="px-4 py-3">
+                          <div className="flex gap-1.5">
+                            <button onClick={() => openEdit(m)}
+                              className="text-xs font-semibold px-2.5 py-1.5 rounded-lg transition-all duration-200"
+                              style={{ background: "rgba(232,114,42,0.10)", color: ORANGE, border: "1px solid rgba(232,114,42,0.18)" }}
+                              onMouseEnter={e => (e.currentTarget.style.background = "rgba(232,114,42,0.20)")}
+                              onMouseLeave={e => (e.currentTarget.style.background = "rgba(232,114,42,0.10)")}>
+                              Editar
+                            </button>
+                            <button onClick={() => remove(m.id, m.volunteer?.user?.name ?? "?")}
+                              className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-lg transition-all duration-200"
+                              style={{ background: "rgba(248,113,113,0.10)", color: "#f87171", border: "1px solid rgba(248,113,113,0.18)" }}
+                              onMouseEnter={e => (e.currentTarget.style.background = "rgba(248,113,113,0.20)")}
+                              onMouseLeave={e => (e.currentTarget.style.background = "rgba(248,113,113,0.10)")}>
+                              <Trash2 size={11} /> Quitar
+                            </button>
+                          </div>
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>
@@ -326,8 +330,8 @@ export default function ManagementPage() {
         </>
       )}
 
-      {/* ═══ MODAL ═══ */}
-      {modal && (
+      {/* ═══ MODAL (solo visible para no-admin) ═══ */}
+      {modal && !isReadOnly && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{ background: "rgba(0,0,0,0.70)", backdropFilter: "blur(6px)" }}
           onClick={() => setModal(false)}>
@@ -339,7 +343,6 @@ export default function ManagementPage() {
                 ? `linear-gradient(90deg,${ORANGE},#f5a35a,transparent)`
                 : `linear-gradient(90deg,${VIOLET},#b48aff,transparent)` }} />
 
-            {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 sticky top-0"
               style={{ borderBottom: "1px solid rgba(255,255,255,0.07)", background: "rgba(7,13,20,0.95)", backdropFilter: "blur(20px)" }}>
               <div className="flex items-center gap-2">
@@ -363,9 +366,7 @@ export default function ManagementPage() {
               </button>
             </div>
 
-            {/* Body */}
             <div className="p-6 space-y-5">
-              {/* Voluntario */}
               <div>
                 <Label required>Voluntario</Label>
                 <select style={IS} value={form.volunteerId}
@@ -380,7 +381,6 @@ export default function ManagementPage() {
                 </select>
               </div>
 
-              {/* Periodo */}
               <div>
                 <Label>Periodo</Label>
                 {activePeriods.length === 0 ? (
@@ -398,7 +398,6 @@ export default function ManagementPage() {
                 )}
               </div>
 
-              {/* Cargos */}
               <div>
                 <Label icon={<Award size={11} />}>Cargos</Label>
                 {positions.length === 0 ? (
@@ -426,7 +425,6 @@ export default function ManagementPage() {
                 )}
               </div>
 
-              {/* Notas */}
               <div>
                 <Label icon={<AlignLeft size={11} />}>Notas</Label>
                 <textarea rows={2} placeholder="Observaciones opcionales..."
@@ -434,7 +432,6 @@ export default function ManagementPage() {
                   onChange={e => setForm({ ...form, notes: e.target.value })} onFocus={fi} onBlur={fo} />
               </div>
 
-              {/* Toggle activo */}
               <label className="flex items-center gap-2.5 cursor-pointer">
                 <div className="relative w-9 h-5 flex-shrink-0" onClick={() => setForm(prev => ({ ...prev, isActive: !prev.isActive }))}>
                   <div className="w-9 h-5 rounded-full transition-all duration-200"
@@ -446,7 +443,6 @@ export default function ManagementPage() {
                 <span className="text-sm" style={{ color: "rgba(255,255,255,0.70)" }}>Miembro activo en gestión</span>
               </label>
 
-              {/* Botones */}
               <div className="flex gap-3 pt-1">
                 <button onClick={() => setModal(false)}
                   className="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200"
@@ -472,4 +468,4 @@ export default function ManagementPage() {
       )}
     </div>
   );
-} 
+}

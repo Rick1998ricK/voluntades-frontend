@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import api from "@/lib/axios";
+import { useAuth } from "@/context/AuthContext";
 import {
   ArrowLeft, User, CreditCard, Phone, Heart, Calendar, GraduationCap,
   Building2, Boxes, Star, FileText, Camera, Plus,
@@ -67,7 +68,18 @@ const DOC_LABELS: Record<string, string> = {
 };
 
 export default function NewVolunteerPage() {
-  const router = useRouter();
+  const router    = useRouter();
+  const { user }  = useAuth();
+
+  // ── Bloquear acceso al registrador ──────────────────────
+  /*useEffect(() => {
+    if (user?.role === "registrador") {
+      router.replace("/admin/volunteers");
+    }
+  }, [user]);
+
+  if (user?.role === "registrador") return null;*/
+  // ────────────────────────────────────────────────────────
 
   const [users, setUsers]           = useState<any[]>([]);
   const [sedes, setSedes]           = useState<any[]>([]);
@@ -192,7 +204,6 @@ export default function NewVolunteerPage() {
     <div className="p-4 md:p-6 min-h-screen" style={{ background: "#070d14", color: "#e2e8f0" }}>
       <div className="max-w-2xl space-y-5">
 
-        {/* Nav */}
         <button onClick={() => router.back()}
           className="flex items-center gap-1.5 text-sm font-medium transition-colors duration-200"
           style={{ color: "rgba(255,255,255,0.40)" }}
@@ -361,7 +372,6 @@ export default function NewVolunteerPage() {
 
           {isManagement && (
             <div className="space-y-4 p-4 rounded-xl" style={{ background: "rgba(155,109,255,0.07)", border: "1px solid rgba(155,109,255,0.18)" }}>
-              {/* Periodo */}
               <div>
                 <Label icon={<Calendar size={11} />}>Periodo</Label>
                 {activePeriods.length === 0 ? (
@@ -375,8 +385,6 @@ export default function NewVolunteerPage() {
                   </select>
                 )}
               </div>
-
-              {/* Cargos */}
               <div>
                 <Label icon={<Star size={11} />}>Cargos</Label>
                 {positions.length === 0 ? (
@@ -396,8 +404,6 @@ export default function NewVolunteerPage() {
                   </div>
                 )}
               </div>
-
-              {/* Notas */}
               <div>
                 <Label icon={<FileText size={11} />}>Notas</Label>
                 <textarea rows={2} placeholder="Observaciones opcionales..."

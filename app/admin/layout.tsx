@@ -21,7 +21,7 @@ const ALL_NAV_ITEMS = [
   { href: "/admin/users",          label: "Usuarios",        icon: Users,           roles: ["super_admin", "registrador"] },
   { href: "/admin/sessions",       label: "Sesiones",        icon: CalendarDays,    roles: ["super_admin", "admin", "registrador"] },
   { href: "/admin/attendance",     label: "Asistencia",      icon: ClipboardCheck,  roles: ["super_admin", "admin", "registrador"] },
-  { href: "/admin/justifications", label: "Justificaciones", icon: FileText,        roles: ["super_admin", "admin"] },
+  { href: "/admin/justifications", label: "Justificaciones", icon: FileText,        roles: ["super_admin", "registrador"] },
   { href: "/admin/management",     label: "Gestión",         icon: Star,            roles: ["super_admin", "admin"] },
   { href: "/admin/profile",        label: "Perfil",          icon: Users,           roles: ["voluntario"] },
 ];

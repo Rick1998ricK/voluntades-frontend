@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import * as XLSX from "xlsx";
 import api from "@/lib/axios";
+import { useAuth } from "@/context/AuthContext";
 import Link from "next/link";
 import { Users, Search, X, ChevronDown, Download, QrCode, Plus, FileCheck, FileClock } from "lucide-react";
 
@@ -57,6 +58,9 @@ function getFichaStatus(vol: any) {
 }
 
 export default function VolunteersPage() {
+  const { user } = useAuth();
+  const isReadOnly = user?.role === "admin";
+
   const [volunteers, setVolunteers]     = useState<any[]>([]);
   const [modules, setModules]           = useState<any[]>([]);
   const [loading, setLoading]           = useState(true);
@@ -137,9 +141,12 @@ export default function VolunteersPage() {
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
           <h1 className="text-xl md:text-2xl font-bold" style={{ color: "#f1f5f9", letterSpacing: "-0.3px" }}>Voluntarios</h1>
-          <p className="text-xs md:text-sm mt-0.5" style={{ color: "rgba(255,255,255,0.35)" }}>Gestión de voluntarios del sistema</p>
+          <p className="text-xs md:text-sm mt-0.5" style={{ color: "rgba(255,255,255,0.35)" }}>
+            {isReadOnly ? "Vista de voluntarios (solo lectura)" : "Gestión de voluntarios del sistema"}
+          </p>
         </div>
         <div className="flex gap-2 flex-wrap">
+          {/* Exportar Excel — visible para todos */}
           {filtered.length > 0 && (
             <button onClick={handleExport}
               className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-200"
@@ -149,20 +156,26 @@ export default function VolunteersPage() {
               <Download size={13} /> <span className="hidden sm:inline">Exportar Excel</span>
             </button>
           )}
-          <Link href="/admin/volunteers/print-qr"
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-200"
-            style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.60)", border: "1px solid rgba(255,255,255,0.10)" }}
-            onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.10)")}
-            onMouseLeave={e => (e.currentTarget.style.background = "rgba(255,255,255,0.06)")}>
-            <QrCode size={13} /> <span className="hidden sm:inline">Imprimir QR</span>
-          </Link>
-          <Link href="/admin/volunteers/new"
-            className="flex items-center gap-2 px-3 md:px-4 py-2 rounded-xl text-xs md:text-sm font-semibold transition-all duration-200"
-            style={{ background: `linear-gradient(135deg,${BLUE},${BLUE_L})`, color: "#fff", boxShadow: `0 4px 16px rgba(46,111,168,0.35)` }}
-            onMouseEnter={e => (e.currentTarget.style.boxShadow = `0 6px 24px rgba(46,111,168,0.50)`)}
-            onMouseLeave={e => (e.currentTarget.style.boxShadow = `0 4px 16px rgba(46,111,168,0.35)`)}>
-            <Plus size={14} /> <span className="hidden sm:inline">Nuevo voluntario</span><span className="sm:hidden">Nuevo</span>
-          </Link>
+
+          {/* Solo no-admin */}
+          {!isReadOnly && (
+            <>
+              <Link href="/admin/volunteers/print-qr"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-200"
+                style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.60)", border: "1px solid rgba(255,255,255,0.10)" }}
+                onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.10)")}
+                onMouseLeave={e => (e.currentTarget.style.background = "rgba(255,255,255,0.06)")}>
+                <QrCode size={13} /> <span className="hidden sm:inline">Imprimir QR</span>
+              </Link>
+              <Link href="/admin/volunteers/new"
+                className="flex items-center gap-2 px-3 md:px-4 py-2 rounded-xl text-xs md:text-sm font-semibold transition-all duration-200"
+                style={{ background: `linear-gradient(135deg,${BLUE},${BLUE_L})`, color: "#fff", boxShadow: `0 4px 16px rgba(46,111,168,0.35)` }}
+                onMouseEnter={e => (e.currentTarget.style.boxShadow = `0 6px 24px rgba(46,111,168,0.50)`)}
+                onMouseLeave={e => (e.currentTarget.style.boxShadow = `0 4px 16px rgba(46,111,168,0.35)`)}>
+                <Plus size={14} /> <span className="hidden sm:inline">Nuevo voluntario</span><span className="sm:hidden">Nuevo</span>
+              </Link>
+            </>
+          )}
         </div>
       </div>
 
@@ -304,6 +317,7 @@ export default function VolunteersPage() {
 
                         <td className="px-4 py-3">
                           <div className="flex gap-1.5 flex-wrap">
+                            {/* Ver — siempre visible */}
                             <Link href={`/admin/volunteers/${vol.id}`}
                               className="text-xs font-semibold px-2.5 py-1.5 rounded-lg transition-all duration-200"
                               style={{ background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.60)" }}
@@ -311,29 +325,35 @@ export default function VolunteersPage() {
                               onMouseLeave={e => (e.currentTarget.style.background = "rgba(255,255,255,0.05)")}>
                               Ver
                             </Link>
-                            <Link href={`/admin/volunteers/${vol.id}/edit`}
-                              className="text-xs font-semibold px-2.5 py-1.5 rounded-lg transition-all duration-200"
-                              style={{ background: "rgba(232,114,42,0.10)", color: ORANGE, border: "1px solid rgba(232,114,42,0.18)" }}
-                              onMouseEnter={e => (e.currentTarget.style.background = "rgba(232,114,42,0.20)")}
-                              onMouseLeave={e => (e.currentTarget.style.background = "rgba(232,114,42,0.10)")}>
-                              Editar
-                            </Link>
-                            {isActive ? (
-                              <button onClick={() => deactivate(vol.id)}
-                                className="text-xs font-semibold px-2.5 py-1.5 rounded-lg transition-all duration-200"
-                                style={{ background: "rgba(248,113,113,0.10)", color: "#f87171", border: "1px solid rgba(248,113,113,0.18)" }}
-                                onMouseEnter={e => (e.currentTarget.style.background = "rgba(248,113,113,0.20)")}
-                                onMouseLeave={e => (e.currentTarget.style.background = "rgba(248,113,113,0.10)")}>
-                                Desactivar
-                              </button>
-                            ) : (
-                              <button onClick={() => activate(vol.id)}
-                                className="text-xs font-semibold px-2.5 py-1.5 rounded-lg transition-all duration-200"
-                                style={{ background: "rgba(74,222,128,0.10)", color: "#4ade80", border: "1px solid rgba(74,222,128,0.18)" }}
-                                onMouseEnter={e => (e.currentTarget.style.background = "rgba(74,222,128,0.20)")}
-                                onMouseLeave={e => (e.currentTarget.style.background = "rgba(74,222,128,0.10)")}>
-                                Activar
-                              </button>
+
+                            {/* Editar / Activar / Desactivar — solo no-admin */}
+                            {!isReadOnly && (
+                              <>
+                                <Link href={`/admin/volunteers/${vol.id}/edit`}
+                                  className="text-xs font-semibold px-2.5 py-1.5 rounded-lg transition-all duration-200"
+                                  style={{ background: "rgba(232,114,42,0.10)", color: ORANGE, border: "1px solid rgba(232,114,42,0.18)" }}
+                                  onMouseEnter={e => (e.currentTarget.style.background = "rgba(232,114,42,0.20)")}
+                                  onMouseLeave={e => (e.currentTarget.style.background = "rgba(232,114,42,0.10)")}>
+                                  Editar
+                                </Link>
+                                {isActive ? (
+                                  <button onClick={() => deactivate(vol.id)}
+                                    className="text-xs font-semibold px-2.5 py-1.5 rounded-lg transition-all duration-200"
+                                    style={{ background: "rgba(248,113,113,0.10)", color: "#f87171", border: "1px solid rgba(248,113,113,0.18)" }}
+                                    onMouseEnter={e => (e.currentTarget.style.background = "rgba(248,113,113,0.20)")}
+                                    onMouseLeave={e => (e.currentTarget.style.background = "rgba(248,113,113,0.10)")}>
+                                    Desactivar
+                                  </button>
+                                ) : (
+                                  <button onClick={() => activate(vol.id)}
+                                    className="text-xs font-semibold px-2.5 py-1.5 rounded-lg transition-all duration-200"
+                                    style={{ background: "rgba(74,222,128,0.10)", color: "#4ade80", border: "1px solid rgba(74,222,128,0.18)" }}
+                                    onMouseEnter={e => (e.currentTarget.style.background = "rgba(74,222,128,0.20)")}
+                                    onMouseLeave={e => (e.currentTarget.style.background = "rgba(74,222,128,0.10)")}>
+                                    Activar
+                                  </button>
+                                )}
+                              </>
                             )}
                           </div>
                         </td>

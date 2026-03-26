@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 // @ts-ignore
 import QRCode from "qrcode";
+import DownloadCards from "@/components/DownloadCard";
 
 const BLUE   = "#2E6FA8";
 const BLUE_L = "#4A90C4";
@@ -173,7 +174,6 @@ export default function ProfilePage() {
     return row.justification.status === "rechazado";
   };
 
-  // ✅ Fix Cloudinary — photoUrl ya es URL completa
   const photoUrl = volunteer?.photoUrl ?? null;
 
   const roleInfo = ROLE_CONFIG[authUser?.role as string] ?? { label: authUser?.role ?? "—", color: BLUE_L, bg: `${BLUE}20` };
@@ -208,6 +208,7 @@ export default function ProfilePage() {
 
         <div className="md:col-span-2 space-y-5">
 
+          {/* ── CARD PERFIL PRINCIPAL ── */}
           <div className="relative overflow-hidden p-6" style={glass(BLUE)}>
             <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: `linear-gradient(90deg,${BLUE},transparent)` }} />
             <div className="flex items-center gap-5">
@@ -241,6 +242,13 @@ export default function ProfilePage() {
                 </div>
               </div>
             </div>
+
+            {/* ── DESCARGAS (solo visible si tiene ficha de voluntario) ── */}
+            {volunteer && (
+              <div className="mt-5">
+                <DownloadCards />
+              </div>
+            )}
           </div>
 
           {volunteer && (

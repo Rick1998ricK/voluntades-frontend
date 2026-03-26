@@ -8,9 +8,9 @@ import {
   ResponsiveContainer, Legend,
 } from "recharts";
 import {
-  CalendarDays, MapPin, Clock, CheckCircle2, XCircle,
-  TrendingUp, Smile, AlertCircle,
+  CalendarDays, MapPin, Clock, TrendingUp,
 } from "lucide-react";
+import DownloadCards from "@/components/DownloadCard";
 
 const BLUE   = "#2E6FA8";
 const BLUE_L = "#4A90C4";
@@ -47,7 +47,6 @@ function getFirstName(fullName?: string) {
   return fullName?.split(" ")[0] ?? "";
 }
 
-// ── Custom Tooltip para la gráfica ───────────────────────────────────────────
 function CustomTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null;
   return (
@@ -86,16 +85,13 @@ export default function VolunteerDashboard() {
   async function load() {
     setLoading(true);
     try {
-      // 1. Ficha de voluntario
       const volRes = await api.get(`/volunteers/by-user/${user!.id}`);
       const vol = volRes.data;
       setVolunteer(vol);
 
-      // 2. Próximas sesiones
       const sesRes = await api.get("/sessions/upcoming");
       setSessions(sesRes.data ?? []);
 
-      // 3. Asistencia por mes
       const attRes = await api.get(`/attendance/volunteer/${vol.id}/by-month`);
       setChartData(
         (attRes.data ?? []).map((r: any) => ({
@@ -110,7 +106,6 @@ export default function VolunteerDashboard() {
     }
   }
 
-  // Stats rápidas desde chartData
   const totalPuntuales = chartData.reduce((s, r) => s + r.puntuales, 0);
   const totalTardes    = chartData.reduce((s, r) => s + r.tardes,    0);
   const totalFaltas    = chartData.reduce((s, r) => s + r.faltas,    0);
@@ -144,6 +139,9 @@ export default function VolunteerDashboard() {
           background: `radial-gradient(circle, ${BLUE}18 0%, transparent 70%)`,
           pointerEvents: "none",
         }} />
+
+        {/* ── DESCARGAS ── */}
+        <DownloadCards />
 
         <div className="relative flex items-center gap-4">
           {/* Avatar */}
@@ -211,7 +209,7 @@ export default function VolunteerDashboard() {
           )}
         </div>
 
-        {/* Mini stats debajo */}
+        {/* Mini stats */}
         {total > 0 && (
           <div className="grid grid-cols-3 gap-3 mt-5">
             {[
@@ -265,7 +263,6 @@ export default function VolunteerDashboard() {
                     onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.03)")}
                     onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
 
-                    {/* Fecha badge */}
                     <div className="w-11 h-11 rounded-xl flex-shrink-0 flex flex-col items-center justify-center"
                       style={{ background: "rgba(232,114,42,0.12)", border: "1px solid rgba(232,114,42,0.20)" }}>
                       <span className="text-base font-bold leading-none" style={{ color: ORANGE }}>{dayNum}</span>
@@ -289,7 +286,6 @@ export default function VolunteerDashboard() {
                       </div>
                     </div>
 
-                    {/* Indicador activa */}
                     {s.isActive && (
                       <span className="flex-shrink-0 text-xs font-semibold px-2 py-0.5 rounded-full"
                         style={{ background: "rgba(74,222,128,0.14)", color: "#4ade80" }}>

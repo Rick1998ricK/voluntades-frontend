@@ -104,7 +104,7 @@ export default function VolunteerDetailPage() {
   const [justSaving, setJustSaving] = useState(false);
 
   const [revertModal,  setRevertModal]  = useState<any>(null);
-  const [revertStatus, setRevertStatus] = useState<"puntual" | "tarde">("puntual");
+  const [revertStatus, setRevertStatus] = useState<"puntual" | "tarde" | "falta">("puntual");
   const [revertSaving, setRevertSaving] = useState(false);
 
   const [docType, setDocType] = useState("carta_compromiso");
@@ -222,6 +222,14 @@ export default function VolunteerDetailPage() {
       </div>
     </div>
   );
+
+  function getRevertOptions(currentStatus: string): ("puntual" | "tarde" | "falta")[] {
+    const s = currentStatus?.toLowerCase();
+    if (s === "puntual") return ["tarde", "falta"];
+    if (s === "tarde")   return ["puntual", "falta"];
+    if (s === "falta")   return ["puntual", "tarde"];
+    return ["puntual", "tarde"];
+  }
 
   const age           = calcAge(volunteer.birthDate);
   const isMinor       = age !== null && age < 18;
@@ -538,7 +546,7 @@ export default function VolunteerDetailPage() {
                 ) : attendance.map((a: any, index: number) => {
                   const statusUp      = a.status?.toUpperCase();
                   const canJustifyRow = canJustify && (statusUp === "FALTA" || statusUp === "TARDE") && !a.justification;
-                  const canRevertRow  = canRevert && statusUp === "FALTA";
+                  const canRevertRow = canRevert;
                   const just = a.justification;
                   return (
                     <tr key={index}
@@ -580,7 +588,7 @@ export default function VolunteerDetailPage() {
                             </button>
                           )}
                           {canRevertRow && (
-                            <button onClick={() => { setRevertModal(a); setRevertStatus("puntual"); }}
+                            <button onClick={() => { setRevertModal(a); setRevertStatus(getRevertOptions(a.status)[0]); }}
                               className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-lg whitespace-nowrap transition-all duration-200"
                               style={{ background: "rgba(74,222,128,0.10)", color: GREEN, border: "1px solid rgba(74,222,128,0.22)" }}
                               onMouseEnter={e => (e.currentTarget.style.background = "rgba(74,222,128,0.20)")}
@@ -668,7 +676,7 @@ export default function VolunteerDetailPage() {
             <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: `linear-gradient(90deg,${GREEN},transparent)` }} />
             <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
               <h2 className="font-bold text-sm flex items-center gap-2" style={{ color: "#f1f5f9" }}>
-                <RotateCcw size={14} color={GREEN} /> Revertir asistencia
+                <RotateCcw size={14} color={GREEN} /> Cambiar estado
               </h2>
               <button onClick={() => setRevertModal(null)} className="w-8 h-8 rounded-lg flex items-center justify-center"
                 style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.50)" }}>
@@ -679,27 +687,35 @@ export default function VolunteerDetailPage() {
               <div className="p-3 rounded-xl space-y-1.5 text-sm" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}>
                 <p><span style={{ color: "rgba(255,255,255,0.35)" }}>Sesión:</span> <b style={{ color: "#f1f5f9" }}>{revertModal.sessionName}</b></p>
                 <p><span style={{ color: "rgba(255,255,255,0.35)" }}>Fecha:</span> <span style={{ color: "rgba(255,255,255,0.65)" }}>{revertModal.date}</span></p>
+                <p className="flex items-center gap-1.5"><span style={{ color: "rgba(255,255,255,0.35)" }}>Estado actual:</span>
+                  {revertModal.status?.toUpperCase() === "PUNTUAL" && <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: "rgba(74,222,128,0.12)", color: "#4ade80" }}>Puntual</span>}
+                  {revertModal.status?.toUpperCase() === "TARDE"   && <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: "rgba(232,114,42,0.12)", color: ORANGE }}>Tarde</span>}
+                  {revertModal.status?.toUpperCase() === "FALTA"   && <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: "rgba(248,113,113,0.12)", color: "#f87171" }}>Falta</span>}
+                </p>
               </div>
               <div>
                 <label className="text-xs font-medium mb-2 uppercase tracking-widest block" style={{ color: "rgba(255,255,255,0.40)" }}>Cambiar a</label>
-                <div className="flex gap-3">
-                  {(["puntual", "tarde"] as const).map(s => (
-                    <button key={s} onClick={() => setRevertStatus(s)}
-                      className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold border"
-                      style={revertStatus === s
-                        ? s === "puntual"
-                          ? { background: "rgba(74,222,128,0.18)", color: GREEN, borderColor: "rgba(74,222,128,0.45)" }
-                          : { background: "rgba(232,114,42,0.18)", color: ORANGE, borderColor: "rgba(232,114,42,0.45)" }
-                        : { background: "rgba(255,255,255,0.04)", color: "rgba(255,255,255,0.35)", borderColor: "rgba(255,255,255,0.09)" }}>
-                      {s === "puntual" ? <><CheckCircle2 size={14} /> Puntual</> : <><Clock size={14} /> Tarde</>}
-                    </button>
-                  ))}
+                <div className="flex gap-2">
+                  {getRevertOptions(revertModal.status).map(opt => {
+                    const selected = revertStatus === opt;
+                    const optStyle = !selected
+                      ? { background: "rgba(255,255,255,0.04)", color: "rgba(255,255,255,0.35)", borderColor: "rgba(255,255,255,0.09)" }
+                      : opt === "puntual"
+                        ? { background: "rgba(74,222,128,0.18)",  color: "#4ade80",  borderColor: "rgba(74,222,128,0.45)"  }
+                        : opt === "tarde"
+                        ? { background: "rgba(250,204,21,0.18)",  color: "#facc15",  borderColor: "rgba(250,204,21,0.45)"  }
+                        : { background: "rgba(248,113,113,0.18)", color: "#f87171",  borderColor: "rgba(248,113,113,0.45)" };
+                    return (
+                      <button key={opt} onClick={() => setRevertStatus(opt)}
+                        className="flex-1 flex items-center justify-center gap-1.5 py-3 rounded-xl text-sm font-semibold border"
+                        style={optStyle}>
+                        {opt === "puntual" && <><CheckCircle2 size={13} /> Puntual</>}
+                        {opt === "tarde"   && <><Clock size={13} /> Tarde</>}
+                        {opt === "falta"   && <><XCircle size={13} /> Falta</>}
+                      </button>
+                    );
+                  })}
                 </div>
-              </div>
-              <div className="p-3 rounded-xl text-xs" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
-                <p style={{ color: "rgba(255,255,255,0.35)" }}>
-                  ⚠️ Esta acción cambiará el estado de la falta a <b style={{ color: revertStatus === "puntual" ? GREEN : ORANGE }}>{revertStatus}</b> aunque la sesión esté cerrada.
-                </p>
               </div>
               <div className="flex gap-3 pt-1">
                 <button onClick={() => setRevertModal(null)}

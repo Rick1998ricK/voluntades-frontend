@@ -40,6 +40,15 @@ const IS: React.CSSProperties = {
 const fi = (e: React.FocusEvent<any>) => { e.target.style.borderColor="rgba(46,111,168,0.60)"; e.target.style.boxShadow="0 0 0 3px rgba(46,111,168,0.12)"; e.target.style.background="rgba(255,255,255,0.07)"; };
 const fo = (e: React.FocusEvent<any>) => { e.target.style.borderColor="rgba(255,255,255,0.10)"; e.target.style.boxShadow="none"; e.target.style.background="rgba(255,255,255,0.05)"; };
 
+// Opciones de revertir según el estado actual
+function getRevertOptions(currentStatus: string): ("puntual" | "tarde" | "falta")[] {
+  const s = currentStatus?.toLowerCase();
+  if (s === "puntual") return ["tarde", "falta"];
+  if (s === "tarde")   return ["puntual", "falta"];
+  if (s === "falta")   return ["puntual", "tarde"];
+  return ["puntual", "tarde"];
+}
+
 function Autocomplete({ placeholder, fetchUrl, value, onSelect, mapItems }: {
   placeholder: string; fetchUrl: string; value: string;
   onSelect: (opt: { id: number; label: string } | null) => void;
@@ -384,17 +393,11 @@ function VolunteerAttendanceView() {
 
   return (
     <div className="p-4 md:p-6 space-y-4 md:space-y-5 min-h-screen" style={{ background: "#070d14", color: "#e2e8f0" }}>
-
-      {/* Título */}
       <div>
         <h1 className="text-xl md:text-2xl font-bold" style={{ color: "#f1f5f9", letterSpacing: "-0.3px" }}>Mi asistencia</h1>
         <p className="text-xs md:text-sm mt-0.5" style={{ color: "rgba(255,255,255,0.35)" }}>Historial de tus registros de asistencia</p>
       </div>
-
-      {/* ── DESCARGAS ── */}
       <DownloadCards />
-
-      {/* Stat cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[{ label: "Total", value: rows.length, color: "rgba(255,255,255,0.80)", accent: BLUE }, { label: "Puntuales", value: puntuales, color: "#4ade80", accent: "#4ade80" }, { label: "Tardanzas", value: tardes, color: "#facc15", accent: "#facc15" }, { label: "Faltas", value: faltas, color: "#f87171", accent: "#f87171" }].map((c, i) => (
           <div key={i} className="relative overflow-hidden p-4 text-center" style={glass(c.accent)}>
@@ -404,7 +407,6 @@ function VolunteerAttendanceView() {
           </div>
         ))}
       </div>
-
       <div className="relative overflow-hidden" style={glass(BLUE)}>
         <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: `linear-gradient(90deg,${BLUE},transparent)` }} />
         {loading ? (
@@ -446,7 +448,6 @@ function VolunteerAttendanceView() {
           </div>
         )}
       </div>
-
       {justModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.70)", backdropFilter: "blur(6px)" }} onClick={() => setJustModal(null)}>
           <div className="w-full max-w-md relative overflow-hidden" style={{ ...glass(ORANGE), borderRadius: "20px" }} onClick={e => e.stopPropagation()}>
@@ -503,16 +504,16 @@ export default function AttendancePage() {
 
   if (me?.role === "voluntario") return <VolunteerAttendanceView />;
 
-  const [filters,     setFilters]     = useState<Filters>({});
-  const [rows,        setRows]        = useState<Row[]>([]);
-  const [stats,       setStats]       = useState<Stats | null>(null);
-  const [pagination,  setPagination]  = useState<Pagination | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [loading,     setLoading]     = useState(false);
-  const [applied,     setApplied]     = useState(false);
-  const [labels,      setLabels]      = useState({ volunteer: '', module: '', sede: '', session: '' });
+  const [filters,      setFilters]      = useState<Filters>({});
+  const [rows,         setRows]         = useState<Row[]>([]);
+  const [stats,        setStats]        = useState<Stats | null>(null);
+  const [pagination,   setPagination]   = useState<Pagination | null>(null);
+  const [currentPage,  setCurrentPage]  = useState(1);
+  const [loading,      setLoading]      = useState(false);
+  const [applied,      setApplied]      = useState(false);
+  const [labels,       setLabels]       = useState({ volunteer: '', module: '', sede: '', session: '' });
   const [revertModal,  setRevertModal]  = useState<Row | null>(null);
-  const [revertStatus, setRevertStatus] = useState<"puntual" | "tarde">("puntual");
+  const [revertStatus, setRevertStatus] = useState<"puntual" | "tarde" | "falta">("puntual");
   const [revertSaving, setRevertSaving] = useState(false);
   const LIMIT = 50;
 
@@ -563,34 +564,44 @@ export default function AttendancePage() {
 
   const hasFilters = Object.values(filters).some(v => v !== undefined && v !== '');
 
+  // Colores para cada opción de revertir
+  const revertOptionStyle = (opt: string, selected: boolean) => {
+    if (!selected) return { background: "rgba(255,255,255,0.04)", color: "rgba(255,255,255,0.35)", borderColor: "rgba(255,255,255,0.09)" };
+    if (opt === "puntual") return { background: "rgba(74,222,128,0.18)",  color: GREEN,  borderColor: "rgba(74,222,128,0.45)"  };
+    if (opt === "tarde")   return { background: "rgba(250,204,21,0.18)",  color: "#facc15", borderColor: "rgba(250,204,21,0.45)"  };
+    if (opt === "falta")   return { background: "rgba(248,113,113,0.18)", color: "#f87171", borderColor: "rgba(248,113,113,0.45)" };
+    return {};
+  };
+
   return (
     <div className="p-4 md:p-6 space-y-4 md:space-y-5 min-h-screen" style={{ background: "#070d14", color: "#e2e8f0" }}>
       {showRegisterModal && <RegisterModal onClose={() => setShowRegisterModal(false)} />}
 
+      {/* ── MODAL REVERTIR ── */}
       {revertModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.70)", backdropFilter: "blur(6px)" }} onClick={() => setRevertModal(null)}>
           <div className="w-full max-w-sm relative overflow-hidden" style={{ ...glass("#4ade80"), borderRadius: "20px" }} onClick={e => e.stopPropagation()}>
             <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: `linear-gradient(90deg,${GREEN},transparent)` }} />
             <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
-              <h2 className="font-bold text-sm flex items-center gap-2" style={{ color: "#f1f5f9" }}><RotateCcw size={14} color={GREEN} /> Revertir asistencia</h2>
+              <h2 className="font-bold text-sm flex items-center gap-2" style={{ color: "#f1f5f9" }}><RotateCcw size={14} color={GREEN} /> Cambiar estado</h2>
               <button onClick={() => setRevertModal(null)} className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.50)" }}><X size={14} /></button>
             </div>
             <div className="p-6 space-y-4">
               <div className="p-3 rounded-xl space-y-1.5 text-sm" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}>
                 <p><span style={{ color: "rgba(255,255,255,0.35)" }}>Voluntario:</span> <b style={{ color: "#f1f5f9" }}>{revertModal.volunteer}</b></p>
                 <p><span style={{ color: "rgba(255,255,255,0.35)" }}>Sesión:</span> <span style={{ color: "rgba(255,255,255,0.65)" }}>{revertModal.session}</span></p>
-                <p><span style={{ color: "rgba(255,255,255,0.35)" }}>Fecha:</span> <span style={{ color: "rgba(255,255,255,0.65)" }}>{revertModal.sessionDate}</span></p>
+                <p><span style={{ color: "rgba(255,255,255,0.35)" }}>Estado actual:</span> <StatusBadge status={revertModal.status} /></p>
               </div>
               <div>
                 <label className="text-xs font-medium mb-2 uppercase tracking-widest block" style={{ color: "rgba(255,255,255,0.40)" }}>Cambiar a</label>
-                <div className="flex gap-3">
-                  {(["puntual", "tarde"] as const).map(s => (
-                    <button key={s} onClick={() => setRevertStatus(s)}
-                      className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold border"
-                      style={revertStatus === s
-                        ? s === "puntual" ? { background: "rgba(74,222,128,0.18)", color: GREEN, borderColor: "rgba(74,222,128,0.45)" } : { background: "rgba(232,114,42,0.18)", color: ORANGE, borderColor: "rgba(232,114,42,0.45)" }
-                        : { background: "rgba(255,255,255,0.04)", color: "rgba(255,255,255,0.35)", borderColor: "rgba(255,255,255,0.09)" }}>
-                      {s === "puntual" ? <><CheckCircle2 size={14} /> Puntual</> : <><Clock size={14} /> Tarde</>}
+                <div className="flex gap-2">
+                  {getRevertOptions(revertModal.status).map(opt => (
+                    <button key={opt} onClick={() => setRevertStatus(opt)}
+                      className="flex-1 flex items-center justify-center gap-1.5 py-3 rounded-xl text-sm font-semibold border"
+                      style={revertOptionStyle(opt, revertStatus === opt)}>
+                      {opt === "puntual" && <><CheckCircle2 size={13} /> Puntual</>}
+                      {opt === "tarde"   && <><Clock size={13} /> Tarde</>}
+                      {opt === "falta"   && <><XCircle size={13} /> Falta</>}
                     </button>
                   ))}
                 </div>
@@ -621,7 +632,7 @@ export default function AttendancePage() {
               <UserCheck size={15} /> Registrar asistencia
             </button>
           )}
-          {applied && rows.length > 0 && (
+          {!isReadOnly && applied && rows.length > 0 && (
             <button onClick={handleExport} className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold"
               style={{ background: "rgba(74,222,128,0.12)", color: "#4ade80", border: "1px solid rgba(74,222,128,0.25)" }}>
               <Download size={15} /> Exportar Excel
@@ -630,7 +641,6 @@ export default function AttendancePage() {
         </div>
       </div>
 
-      {/* ── DESCARGAS ── */}
       <DownloadCards />
 
       {/* Filtros */}
@@ -704,13 +714,17 @@ export default function AttendancePage() {
                         <td className="px-4 py-3 text-xs whitespace-nowrap" style={{ color: "rgba(255,255,255,0.50)" }}>{row.registeredBy || '—'}</td>
                         <td className="px-4 py-3 text-xs whitespace-nowrap" style={{ color: "rgba(255,255,255,0.40)" }}>{row.createdAt ? new Date(row.createdAt).toLocaleString('es-PE') : '—'}</td>
                         <td className="px-4 py-3">
-                          {canRevert && row.status?.toLowerCase() === 'falta' && (
-                            <button onClick={() => { setRevertModal(row); setRevertStatus("puntual"); }}
+                          {/* ── Botón revertir para cualquier estado ── */}
+                          {canRevert && (
+                            <button onClick={() => {
+                              setRevertModal(row);
+                              setRevertStatus(getRevertOptions(row.status)[0]);
+                            }}
                               className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-lg whitespace-nowrap"
                               style={{ background: "rgba(74,222,128,0.10)", color: GREEN, border: "1px solid rgba(74,222,128,0.22)" }}
                               onMouseEnter={e => (e.currentTarget.style.background = "rgba(74,222,128,0.20)")}
                               onMouseLeave={e => (e.currentTarget.style.background = "rgba(74,222,128,0.10)")}>
-                              <RotateCcw size={11} /> Revertir
+                              <RotateCcw size={11} /> Cambiar
                             </button>
                           )}
                         </td>

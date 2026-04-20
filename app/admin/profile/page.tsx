@@ -148,6 +148,19 @@ export default function ProfilePage() {
 
   async function submitJustification() {
     if (!reason.trim()) return setJustMsg({ type: "err", text: "El motivo es obligatorio" });
+
+    // ✅ CAMBIO 1: Validación de tipo de archivo antes de enviar
+    if (file) {
+      const allowed = [
+        'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      ];
+      if (!allowed.includes(file.type)) {
+        return setJustMsg({ type: "err", text: "Solo se permiten archivos PDF o Word (.pdf, .doc, .docx)" });
+      }
+    }
+
     setSending(true); setJustMsg(null);
     try {
       const form = new FormData();
@@ -546,7 +559,8 @@ export default function ProfilePage() {
 
               <div>
                 <Label>Archivo adjunto <span style={{ color: "rgba(255,255,255,0.25)", fontSize: 10, textTransform: "none" }}>(opcional)</span></Label>
-                <input ref={fileRef} type="file" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" className="hidden"
+                {/* ✅ CAMBIO 2: accept solo PDF y Word */}
+                <input ref={fileRef} type="file" accept=".pdf,.doc,.docx" className="hidden"
                   onChange={e => setFile(e.target.files?.[0] ?? null)} />
                 <button onClick={() => fileRef.current?.click()}
                   className="w-full py-2.5 rounded-xl text-xs font-semibold transition-all duration-200"
@@ -555,7 +569,8 @@ export default function ProfilePage() {
                     color: file ? "#4ade80" : "rgba(255,255,255,0.45)",
                     border: `1px solid ${file ? "rgba(74,222,128,0.30)" : "rgba(255,255,255,0.10)"}`,
                   }}>
-                  {file ? `📎 ${file.name}` : "Seleccionar archivo (PDF, Word, imagen)"}
+                  {/* ✅ CAMBIO 3: texto actualizado */}
+                  {file ? `📎 ${file.name}` : "Seleccionar archivo (PDF o Word)"}
                 </button>
               </div>
 

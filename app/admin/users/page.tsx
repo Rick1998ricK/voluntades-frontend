@@ -42,6 +42,7 @@ const ROLE_STYLES: Record<string, { label: string; color: string; bg: string; bo
   admin:       { label: "Admin",       color: BLUE_L,   bg: "rgba(74,144,196,0.12)",  border: "rgba(74,144,196,0.25)"  },
   registrador: { label: "Registrador", color: ORANGE,   bg: "rgba(232,114,42,0.12)",  border: "rgba(232,114,42,0.25)"  },
   voluntario:  { label: "Voluntario",  color: "#4ade80", bg: "rgba(74,222,128,0.12)", border: "rgba(74,222,128,0.25)"  },
+  xpress: { label: "Xpress", color: "#fb923c", bg: "rgba(251,146,60,0.12)", border: "rgba(251,146,60,0.25)" },
 };
 
 export default function UsersPage() {
@@ -189,6 +190,7 @@ export default function UsersPage() {
               <option value="admin">Admin</option>
               <option value="registrador">Registrador</option>
               <option value="voluntario">Voluntario</option>
+              <option value="xpress">Xpress</option>
             </select>
           </div>
 
@@ -267,20 +269,28 @@ export default function UsersPage() {
                         onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.03)")}
                         onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
 
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-2.5">
-                            <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
-                              style={{ background: "rgba(46,111,168,0.20)", color: BLUE_L, border: "1px solid rgba(46,111,168,0.25)" }}>
-                              {u.name?.charAt(0)?.toUpperCase()}
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2.5">
+                              {u.volunteer?.photoUrl
+                                ? <img 
+                                    src={u.volunteer.photoUrl?.startsWith("http") ? u.volunteer.photoUrl : `${process.env.NEXT_PUBLIC_API_URL}/${u.volunteer.photoUrl}`}
+                                    className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                                    style={{ border: "1px solid rgba(46,111,168,0.25)" }} 
+                                    alt="" 
+                                  />
+                                : <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
+                                    style={{ background: "rgba(46,111,168,0.20)", color: BLUE_L, border: "1px solid rgba(46,111,168,0.25)" }}>
+                                    {u.name?.charAt(0)?.toUpperCase()}
+                                  </div>
+                              }
+                              <div>
+                                <p className="font-semibold text-sm leading-tight" style={{ color: "#f1f5f9" }}>{u.name}</p>
+                                {u.id === me?.id && (
+                                  <p className="text-xs" style={{ color: "rgba(255,255,255,0.30)" }}>Tú</p>
+                                )}
+                              </div>
                             </div>
-                            <div>
-                              <p className="font-semibold text-sm leading-tight" style={{ color: "#f1f5f9" }}>{u.name}</p>
-                              {u.id === me?.id && (
-                                <p className="text-xs" style={{ color: "rgba(255,255,255,0.30)" }}>Tú</p>
-                              )}
-                            </div>
-                          </div>
-                        </td>
+                          </td>
 
                         <td className="px-4 py-3 text-xs" style={{ color: "rgba(255,255,255,0.50)" }}>{u.email}</td>
 

@@ -11,6 +11,8 @@ import {
   ClipboardList, QrCode, Download, X, Star,
   Calendar, Award, CheckCircle2, Clock, XCircle, Paperclip,
   RotateCcw,
+  Heart,
+  MessageSquare,
 } from "lucide-react";
 
 const BLUE   = "#2E6FA8";
@@ -78,7 +80,7 @@ function getVolunteerStatus(volunteer: any) {
   return { label: "Pendiente docs", color: ORANGE, bg: "rgba(232,114,42,0.12)", border: "rgba(232,114,42,0.25)" };
 }
 
-type TabKey = "info" | "docs" | "asistencia";
+type TabKey = "info" | "docs" | "asistencia" | "medica" | "evaluaciones";
 
 export default function VolunteerDetailPage() {
   const { id }    = useParams();
@@ -97,6 +99,11 @@ export default function VolunteerDetailPage() {
   const [tab,        setTab]        = useState<TabKey>("info");
   const [attendance, setAttendance] = useState<any[]>([]);
   const [loadingAtt, setLoadingAtt] = useState(false);
+  const [evaluations, setEvaluations] = useState<any[]>([]);
+  const [periods,      setPeriods]      = useState<any[]>([]);
+  const [filterPeriod, setFilterPeriod] = useState("");
+  const [evalPeriod,   setEvalPeriod]   = useState("");
+  const [alerts, setAlerts] = useState<{ faltas: number; tardanzas: number; alerts: string[] } | null>(null);
 
   const [justModal,  setJustModal]  = useState<any>(null);
   const [justReason, setJustReason] = useState("");
@@ -107,6 +114,8 @@ export default function VolunteerDetailPage() {
   const [revertStatus, setRevertStatus] = useState<"puntual" | "tarde" | "falta">("puntual");
   const [revertSaving, setRevertSaving] = useState(false);
 
+
+  const [photoModal, setPhotoModal] = useState(false);
   const [docType, setDocType] = useState("carta_compromiso");
   const [docFile, setDocFile] = useState<File | null>(null);
 
@@ -116,7 +125,7 @@ export default function VolunteerDetailPage() {
     await QRCode.toCanvas(canvasRef.current, qrData, { width: 200, margin: 2 });
   }, []);
 
-  useEffect(() => { fetchAll(); }, []);
+  useEffect(() => { fetchAll(); fetchAlerts(); }, []);
 
   useEffect(() => {
     if (tab === "info" && volunteer) setTimeout(() => generateQR(volunteer), 50);
@@ -130,6 +139,24 @@ export default function VolunteerDetailPage() {
     ]);
     setVolunteer(volRes.data);
     setManagement(mgmtRes.data ?? []);
+  }
+
+  async function fetchAlerts() {
+    try {
+      const res = await api.get(`/attendance/volunteer/${id}/alerts`);
+      setAlerts(res.data);
+    } catch {};
+    api.get(`/evaluations/volunteer/${id}`)
+    .then(r => setEvaluations(r.data))
+    .catch(() => {});
+    api.get("/periods").then(r => {
+      setPeriods(r.data);
+      if (r.data.length > 0) {
+        const last = r.data.reduce((prev: any, curr: any) => curr.id > prev.id ? curr : prev, r.data[0]);
+        setFilterPeriod(String(last.id));
+        setEvalPeriod(String(last.id));
+      }
+    }).catch(() => {});
   }
 
   async function fetchAttendance() {
@@ -245,9 +272,11 @@ export default function VolunteerDetailPage() {
   const activeManagement = management.filter(m => m.isActive);
 
   const tabs: { key: TabKey; label: string; icon: React.ReactNode }[] = [
-    { key: "info",       label: "Información", icon: <Users size={13} />         },
-    { key: "docs",       label: "Documentos",  icon: <FileText size={13} />      },
-    { key: "asistencia", label: "Asistencia",  icon: <ClipboardList size={13} /> },
+    { key: "info",         label: "Información",  icon: <Users size={13} />         },
+    { key: "docs",         label: "Documentos",   icon: <FileText size={13} />      },
+    { key: "asistencia",   label: "Asistencia",   icon: <ClipboardList size={13} /> },
+    { key: "medica",       label: "Ficha médica", icon: <Heart size={13} />         },
+    { key: "evaluaciones", label: "Evaluaciones", icon: <Star size={13} />          },
   ];
 
   return (
@@ -265,7 +294,8 @@ export default function VolunteerDetailPage() {
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-3 min-w-0">
           <div className="w-14 h-14 rounded-2xl overflow-hidden flex-shrink-0 flex items-center justify-center"
-            style={{ background: "rgba(46,111,168,0.15)", border: "2px solid rgba(255,255,255,0.10)" }}>
+            style={{ background: "rgba(46,111,168,0.15)", border: "2px solid rgba(255,255,255,0.10)", cursor: photoUrl ? "pointer" : "default" }}
+            onClick={() => photoUrl && setPhotoModal(true)}>
             {photoUrl
               ? <img src={photoUrl} alt="" className="w-full h-full object-cover"
                   onError={e => { (e.target as any).style.display = "none"; }} />
@@ -282,6 +312,18 @@ export default function VolunteerDetailPage() {
                 style={{ background: st.bg, color: st.color, border: `1px solid ${st.border}` }}>
                 {st.label}
               </span>
+              {alerts && alerts.faltas >= 3 && (
+                <span className="text-xs font-semibold px-2.5 py-1 rounded-full flex items-center gap-1"
+                  style={{ background: "rgba(248,113,113,0.15)", color: "#f87171", border: "1px solid rgba(248,113,113,0.30)" }}>
+                  🚨 {alerts.faltas} faltas
+                </span>
+              )}
+              {alerts && alerts.tardanzas >= 3 && (
+                <span className="text-xs font-semibold px-2.5 py-1 rounded-full flex items-center gap-1"
+                  style={{ background: "rgba(250,204,21,0.15)", color: "#facc15", border: "1px solid rgba(250,204,21,0.30)" }}>
+                  ⚠️ {alerts.tardanzas} tardanzas
+                </span>
+              )}
               {isMinor && (
                 <span className="text-xs font-semibold px-2.5 py-1 rounded-full"
                   style={{ background: "rgba(251,191,36,0.12)", color: "#fbbf24" }}>
@@ -520,9 +562,19 @@ export default function VolunteerDetailPage() {
         <div className="relative overflow-hidden" style={glass()}>
           <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: `linear-gradient(90deg,${BLUE},transparent)` }} />
           <div className="px-5 py-4" style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
-            <h2 className="font-semibold text-sm flex items-center gap-2" style={{ color: "rgba(255,255,255,0.80)" }}>
-              <ClipboardList size={14} color={BLUE_L} /> Historial de asistencia
-            </h2>
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <h2 className="font-semibold text-sm flex items-center gap-2" style={{ color: "rgba(255,255,255,0.80)" }}>
+                <ClipboardList size={14} color={BLUE_L} /> Historial de asistencia
+              </h2>
+              <select value={filterPeriod} onChange={e => setFilterPeriod(e.target.value)}
+                className="text-xs px-3 py-2 rounded-xl outline-none"
+                style={{ background: "rgba(255,255,255,0.10)", border: "1px solid rgba(255,255,255,0.25)", color: "rgba(255,255,255,0.90)" }}>
+                <option value="" style={{ background: "#0d1424" }}>Todos los períodos</option>
+                {periods.map((p: any) => (
+                  <option key={p.id} value={p.id} style={{ background: "#0d1424" }}>{p.name}</option>
+                ))}
+              </select>
+            </div>
             <p className="text-xs mt-0.5" style={{ color: "rgba(255,255,255,0.30)" }}>
               Las faltas y tardanzas pueden ser justificadas
               {canRevert && " · Las faltas pueden ser revertidas manualmente"}
@@ -541,9 +593,21 @@ export default function VolunteerDetailPage() {
               <tbody>
                 {loadingAtt ? (
                   <tr><td colSpan={6} className="text-center p-8 text-sm" style={{ color: "rgba(255,255,255,0.30)" }}>Cargando...</td></tr>
-                ) : attendance.length === 0 ? (
+                ) : attendance.filter((a: any) => {
+                  if (!filterPeriod) return true;
+                  const period = periods.find((p: any) => p.id === parseInt(filterPeriod));
+                  if (!period) return true;
+                  const d = new Date(a.session?.date ?? a.date);
+                  return d >= new Date(period.startDate) && d <= new Date(period.endDate);
+                }).length === 0 ? (
                   <tr><td colSpan={6} className="text-center p-8 text-sm" style={{ color: "rgba(255,255,255,0.30)" }}>Sin registros</td></tr>
-                ) : attendance.map((a: any, index: number) => {
+                ) : attendance.filter((a: any) => {
+                  if (!filterPeriod) return true;
+                  const period = periods.find((p: any) => p.id === parseInt(filterPeriod));
+                  if (!period) return true;
+                  const d = new Date(a.session?.date ?? a.date);
+                  return d >= new Date(period.startDate) && d <= new Date(period.endDate);
+                }).map((a: any, index: number) => {
                   const statusUp      = a.status?.toUpperCase();
                   const canJustifyRow = canJustify && (statusUp === "FALTA" || statusUp === "TARDE") && !a.justification;
                   const canRevertRow = canRevert;
@@ -604,6 +668,171 @@ export default function VolunteerDetailPage() {
               </tbody>
             </table>
           </div>
+        </div>
+      )}
+
+      {/* ── TAB: FICHA MÉDICA ── */}
+      {tab === "medica" && (
+        <div className="relative overflow-hidden p-5" style={glass("#f472b6")}>
+          <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: "linear-gradient(90deg,#f472b6,transparent)" }} />
+            <h2 className="font-semibold text-sm flex items-center gap-2" style={{ color: "rgba(255,255,255,0.80)" }}>
+              <Heart size={14} color={BLUE_L} /> Historial de asistencia
+            </h2>
+          {!(volunteer.insuranceType || volunteer.allergies || volunteer.medicalCondition || volunteer.disability) ? (
+            <p className="text-sm text-center py-8" style={{ color: "rgba(255,255,255,0.30)" }}>
+              No hay información médica registrada. Edita el voluntario para agregarla.
+            </p>
+          ) : (
+            <div className="grid grid-cols-2 gap-x-6 gap-y-4 text-sm">
+              {[
+                ["Tipo de seguro",   volunteer.insuranceType],
+                ["Nombre seguro",    volunteer.insuranceName],
+                ["Nro. de póliza",   volunteer.insuranceNumber],
+                ["Clínica/Hospital", volunteer.insuranceHospital],
+                ["Vigencia",         volunteer.insuranceExpiry?.substring(0, 10)],
+                ["Alergias",         volunteer.allergies],
+                ["Cond. médica",     volunteer.medicalCondition],
+                ["Discapacidad",     volunteer.disability],
+              ].map(([label, value]: any) => (
+                <div key={label}>
+                  <p className="text-xs mb-0.5" style={{ color: "rgba(255,255,255,0.30)" }}>{label}</p>
+                  <p className="font-medium text-sm" style={{ color: value ? "rgba(255,255,255,0.80)" : "rgba(255,255,255,0.25)" }}>
+                    {value || "—"}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+          {/* PDF del seguro */}
+          {(() => {
+            const seguroDoc = volunteer.documents?.find((d: any) => d.type === "seguro_vida");
+            return seguroDoc ? (
+              <div className="mt-4 pt-4" style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}>
+                <p className="text-xs mb-2 font-semibold uppercase tracking-widest" style={{ color: "rgba(255,255,255,0.30)" }}>
+                  Documento del seguro
+                </p>
+                <button onClick={() => downloadDocument(seguroDoc.id, seguroDoc.type)}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200"
+                  style={{ background: "rgba(244,114,182,0.12)", color: "#f472b6", border: "1px solid rgba(244,114,182,0.25)" }}
+                  onMouseEnter={e => (e.currentTarget.style.background = "rgba(244,114,182,0.22)")}
+                  onMouseLeave={e => (e.currentTarget.style.background = "rgba(244,114,182,0.12)")}>
+                  <Download size={14} /> Descargar PDF del seguro
+                </button>
+              </div>
+            ) : (
+              <div className="mt-4 pt-4" style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}>
+                <p className="text-xs" style={{ color: "rgba(255,255,255,0.25)" }}>
+                  📎 Sin PDF del seguro adjunto — súbelo desde la pestaña Documentos
+                </p>
+              </div>
+            );
+          })()}
+        </div>
+      )}
+
+      {/* ── TAB: EVALUACIONES ── */}
+      {tab === "evaluaciones" && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between flex-wrap gap-2 p-2 rounded-xl mb-2" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}>
+            <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "rgba(255,255,255,0.30)" }}>
+              Evaluaciones
+            </p>
+            <select value={evalPeriod} onChange={e => setEvalPeriod(e.target.value)}
+              className="text-xs px-3 py-2 rounded-xl outline-none"
+              style={{ background: "rgba(255,255,255,0.10)", border: "1px solid rgba(255,255,255,0.25)", color: "rgba(255,255,255,0.90)" }}>
+              <option value="" style={{ background: "#0d1424" }}>Todos los períodos</option>
+              {periods.map((p: any) => (
+                <option key={p.id} value={p.id} style={{ background: "#0d1424" }}>{p.name}</option>
+              ))}
+            </select>
+          </div>
+
+          {(() => {
+            const filteredEvals = !evalPeriod ? evaluations : evaluations.filter((e: any) => {
+              const period = periods.find((p: any) => p.id === parseInt(evalPeriod));
+              if (!period) return true;
+              const d = new Date(e.weekDate ?? e.createdAt);
+              return d >= new Date(period.startDate) && d <= new Date(period.endDate);
+            });
+
+            if (filteredEvals.length === 0) return (
+              <div className="text-center py-12 rounded-2xl" style={glass("#9b6dff")}>
+                <Star size={32} className="mx-auto mb-3" style={{ color: "rgba(255,255,255,0.15)" }} />
+                <p className="text-sm" style={{ color: "rgba(255,255,255,0.30)" }}>
+                  No hay evaluaciones registradas aún
+                </p>
+              </div>
+            );
+
+            return filteredEvals.map((e: any) => {
+              const vars = e.type === "voluntario"
+                ? [
+                    { key: "participacionReunion", label: "Participó en reunión"   },
+                    { key: "asistenciaDomingo",    label: "Asistencia el domingo"  },
+                    { key: "cumplioMateriales",    label: "Cumplió con materiales" },
+                    { key: "proactividad",         label: "Proactividad en sesión" },
+                  ]
+                : [
+                    { key: "cumplimientoObjetivos", label: "Cumplimiento de objetivos"          },
+                    { key: "integracionEquipo",     label: "Integración del equipo"             },
+                    { key: "comunicacionAsertiva",  label: "Comunicación asertiva"              },
+                    { key: "participacionExtra",    label: "Participación en actividades extra"  },
+                  ];
+
+              const SCALE: Record<number, { label: string; color: string; bg: string }> = {
+                1: { label: "Regular",   color: "#f87171", bg: "rgba(248,113,113,0.12)" },
+                2: { label: "Bueno",     color: "#facc15", bg: "rgba(250,204,21,0.12)"  },
+                3: { label: "Excelente", color: "#4ade80", bg: "rgba(74,222,128,0.12)"  },
+              };
+
+              const vals = vars.map(v => e[v.key]).filter((x: any) => x != null);
+              const avg  = vals.length ? (vals.reduce((a: number, b: number) => a + b, 0) / vals.length).toFixed(1) : null;
+              const avgN = avg ? parseFloat(avg) : 0;
+              const avgStyle = avgN >= 2.5 ? SCALE[3] : avgN >= 1.5 ? SCALE[2] : SCALE[1];
+
+              return (
+                <div key={e.id} className="relative p-4 rounded-2xl" style={glass("#9b6dff")}>
+                  <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: "linear-gradient(90deg,#9b6dff,transparent)", borderRadius: "16px 16px 0 0" }} />
+                  <div className="flex items-center justify-between flex-wrap gap-2 mb-4">
+                    <div className="flex items-center gap-2">
+                      <Star size={13} color="#9b6dff" />
+                      <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: "rgba(255,255,255,0.50)" }}>
+                        {e.weekDate ? `Semana del ${e.weekDate}` : "Sin fecha"}
+                      </span>
+                    </div>
+                    {avg && (
+                      <span className="text-xs font-semibold px-2.5 py-1 rounded-full flex items-center gap-1"
+                        style={{ background: avgStyle.bg, color: avgStyle.color }}>
+                        <Star size={10} fill={avgStyle.color} /> {avg} / 3 — {avgStyle.label}
+                      </span>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    {vars.map((v: any) => (
+                      <div key={v.key} className="p-3 rounded-xl"
+                        style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
+                        <p className="text-xs mb-1.5" style={{ color: "rgba(255,255,255,0.35)" }}>{v.label}</p>
+                        {e[v.key] ? (
+                          <span className="text-xs font-semibold px-2 py-0.5 rounded-full"
+                            style={{ background: SCALE[e[v.key]].bg, color: SCALE[e[v.key]].color }}>
+                            {SCALE[e[v.key]].label}
+                          </span>
+                        ) : (
+                          <span style={{ color: "rgba(255,255,255,0.25)", fontSize: 12 }}>—</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  {e.observaciones && (
+                    <p className="text-xs mt-3 px-3 py-2 rounded-xl italic"
+                      style={{ background: "rgba(255,255,255,0.03)", color: "rgba(255,255,255,0.45)" }}>
+                      <MessageSquare size={11} className="inline mr-1" /> {e.observaciones}
+                    </p>
+                  )}
+                </div>
+              );
+            });
+          })()}
         </div>
       )}
 
@@ -730,6 +959,42 @@ export default function VolunteerDetailPage() {
                   {revertSaving ? "Guardando..." : "Confirmar cambio"}
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* MODAL FOTO */}
+      {photoModal && photoUrl && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: "rgba(0,0,0,0.85)", backdropFilter: "blur(8px)" }}
+          onClick={() => setPhotoModal(false)}>
+          <div className="relative" onClick={e => e.stopPropagation()}>
+            <img src={photoUrl} alt={volunteer.fullName}
+              className="max-w-sm max-h-[80vh] rounded-2xl object-cover"
+              style={{ boxShadow: "0 24px 64px rgba(0,0,0,0.80)" }} />
+            <div className="flex gap-2 mt-3 justify-center">
+            <button onClick={async (e) => {
+              e.stopPropagation();
+              try {
+                const res = await fetch(photoUrl!);
+                const blob = await res.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `foto_${volunteer.fullName}.png`;
+                a.click();
+                URL.revokeObjectURL(url);
+              } catch { alert("Error al descargar la foto"); }
+            }}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold"
+              style={{ background: `linear-gradient(135deg,${BLUE},${BLUE_L})`, color: "#fff" }}>
+              <Download size={14} /> Descargar foto
+            </button>
+              <button onClick={() => setPhotoModal(false)}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold"
+                style={{ background: "rgba(255,255,255,0.10)", color: "rgba(255,255,255,0.70)" }}>
+                <X size={14} /> Cerrar
+              </button>
             </div>
           </div>
         </div>

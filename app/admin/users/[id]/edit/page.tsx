@@ -49,6 +49,7 @@ const ROLES = [
   { id: 2, name: "admin",       label: "Admin",       color: BLUE_L,   desc: "Gestión completa"             },
   { id: 3, name: "registrador", label: "Registrador", color: "#fb923c", desc: "Registro de asistencia"      },
   { id: 4, name: "voluntario",  label: "Voluntario",  color: "#4ade80", desc: "Acceso básico de voluntario" },
+  { id: 5, name: "xpress", label: "Xpress", color: "#fb923c", desc: "Apoyo o reincorporación" },
 ];
 
 export default function EditUserPage() {

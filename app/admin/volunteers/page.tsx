@@ -65,12 +65,20 @@ export default function VolunteersPage() {
   const [modules, setModules]           = useState<any[]>([]);
   const [loading, setLoading]           = useState(true);
   const [search, setSearch]             = useState("");
+  const [periods,      setPeriods]      = useState<any[]>([]);
+  const [filterPeriod, setFilterPeriod] = useState("");
   const [filterFicha, setFilterFicha]   = useState("");
   const [filterStatus, setFilterStatus] = useState("");
   const [filterModule, setFilterModule] = useState("");
   const [visible, setVisible]           = useState(PAGE_SIZE);
 
-  useEffect(() => { load(); loadModules(); }, []);
+  useEffect(() => { 
+    load(); 
+    loadModules();
+    api.get("/periods").then(r => {
+      setPeriods(r.data);
+    }).catch(() => {});
+  }, []);
 
   async function load() {
     try {
@@ -99,6 +107,7 @@ export default function VolunteersPage() {
   }
 
   const filtered = volunteers.filter(v => {
+    if (filterPeriod && v.joinPeriod !== filterPeriod) return false;
     const matchSearch = !search || v.fullName?.toLowerCase().includes(search.toLowerCase()) || v.dni?.includes(search);
     const ficha = getFichaStatus(v).label.toLowerCase();
     return matchSearch
@@ -192,6 +201,14 @@ export default function VolunteersPage() {
             onBlur={e => { e.target.style.borderColor = "rgba(255,255,255,0.10)"; e.target.style.boxShadow = "none"; }}
           />
         </div>
+        <select value={filterPeriod} onChange={e => setFilterPeriod(e.target.value)}
+          className="text-xs px-3 py-2 rounded-xl outline-none"
+          style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.10)", color: "rgba(255,255,255,0.70)" }}>
+          <option value="" style={{ background: "#0d1424" }}>Todos los períodos</option>
+          {periods.map((p: any) => (
+            <option key={p.id} value={p.name} style={{ background: "#0d1424" }}>{p.name}</option>
+          ))}
+        </select>
         <select style={selectStyle} value={filterModule} onChange={e => { setFilterModule(e.target.value); resetVisible(); }}>
           <option value="" style={{ background: "#0d1424" }}>Todos los módulos</option>
           {modules.map(m => <option key={m.id} value={String(m.id)} style={{ background: "#0d1424" }}>{m.name}</option>)}

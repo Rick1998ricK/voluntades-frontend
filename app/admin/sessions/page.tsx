@@ -62,11 +62,13 @@ export default function SessionsPage() {
   const [selectedModule, setSelectedModule] = useState("");
   const [selectedSede, setSelectedSede]     = useState("");
   const [date, setDate]                     = useState("");
+  const [periods, setPeriods]               = useState<any[]>([]);
+  const [filterPeriod, setFilterPeriod]     = useState("");
   const [deletingId, setDeletingId]         = useState<number | null>(null);
   const [visible, setVisible]               = useState(PAGE_SIZE);
   const router = useRouter();
 
-  useEffect(() => { fetchSessions(); fetchModules(); }, []);
+  useEffect(() => { fetchSessions(); fetchModules(); fetchPeriods(); }, []);
 
   const fetchSessions = async () => {
     const res = await axios.get("/sessions");
@@ -79,6 +81,15 @@ export default function SessionsPage() {
   const fetchModules = async () => {
     const res = await axios.get("/modules");
     setModules(res.data);
+  };
+
+  const fetchPeriods = async () => {
+    const res = await axios.get("/periods");
+    setPeriods(res.data);
+    if (res.data.length > 0) {
+      const last = res.data.reduce((prev: any, curr: any) => curr.id > prev.id ? curr : prev, res.data[0]);
+      setFilterPeriod(String(last.id));
+    }
   };
 
   const handleDelete = async (id: number) => {
@@ -96,12 +107,18 @@ export default function SessionsPage() {
     const matchSede   = !selectedSede   || s.modules?.some(m => m.sede?.id === Number(selectedSede));
     const matchModule = !selectedModule || s.modules?.some(m => m.id === Number(selectedModule));
     const matchDate   = !date || s.date === date;
-    return matchSede && matchModule && matchDate;
+    const matchPeriod = !filterPeriod || (() => {
+      const period = periods.find(p => p.id === parseInt(filterPeriod));
+      if (!period) return true;
+      const sessionDate = new Date(s.date);
+      return sessionDate >= new Date(period.startDate) && sessionDate <= new Date(period.endDate);
+    })();
+    return matchSede && matchModule && matchDate && matchPeriod;
   });
   const shown   = filtered.slice(0, visible);
   const hasMore = visible < filtered.length;
   const resetVisible = () => setVisible(PAGE_SIZE);
-  const hasFilters = !!(selectedSede || selectedModule || date);
+  const hasFilters = !!(selectedSede || selectedModule || date || filterPeriod);
 
   return (
     <div className="p-4 md:p-6 space-y-4 md:space-y-5 min-h-screen" style={{ background: "#070d14", color: "#e2e8f0" }}>
@@ -132,6 +149,13 @@ export default function SessionsPage() {
       {/* FILTROS */}
       <div className="flex gap-2 flex-wrap items-center p-3 rounded-xl"
         style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)" }}>
+        <select style={selStyle} value={filterPeriod}
+          onChange={e => { setFilterPeriod(e.target.value); resetVisible(); }}>
+          <option value="" style={{ background: "#0d1424" }}>Todos los períodos</option>
+          {periods.map((p: any) => (
+            <option key={p.id} value={p.id} style={{ background: "#0d1424" }}>{p.name}</option>
+          ))}
+        </select>
         <select style={selStyle} value={selectedSede}
           onChange={e => { setSelectedSede(e.target.value); resetVisible(); }}>
           <option value="" style={{ background: "#0d1424" }}>Todas las sedes</option>
@@ -146,7 +170,7 @@ export default function SessionsPage() {
         <input type="date" style={{ ...selStyle, width: "auto" }} value={date}
           onChange={e => { setDate(e.target.value); resetVisible(); }} />
         {hasFilters && (
-          <button onClick={() => { setSelectedSede(""); setSelectedModule(""); setDate(""); resetVisible(); }}
+          <button onClick={() => { setSelectedSede(""); setSelectedModule(""); setDate(""); setFilterPeriod(""); resetVisible(); }}
             className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg transition-all duration-200"
             style={{ background: "rgba(248,113,113,0.10)", color: "#f87171" }}>
             <X size={11} /> Limpiar

@@ -7,7 +7,7 @@ import Link from "next/link";
 import {
   Users, CalendarDays, ClipboardCheck, AlertCircle,
   TrendingUp, BarChart2, Trophy, Clock, AlertTriangle,
-  Cake, ListChecks, MapPin,
+  Cake, ListChecks, MapPin, Activity, 
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
@@ -178,7 +178,7 @@ function VolunteerDashboard() {
                 )}
                 <span className="text-xs font-semibold px-2 py-0.5 rounded-full"
                   style={{ background: "rgba(74,222,128,0.14)", color: "#4ade80" }}>
-                  Voluntario activo
+                  {user?.role === "xpress" ? "Xpress activo" : "Voluntario activo"}
                 </span>
               </div>
             )}
@@ -323,15 +323,30 @@ function AdminDashboard() {
   const { user } = useAuth();
   const [stats,   setStats]   = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [alertas, setAlertas] = useState<any[]>([]);
+  const [sessionPeriod, setSessionPeriod] = useState("");
+  const [periods,     setPeriods]     = useState<any[]>([]);
+  const [alertPeriod, setAlertPeriod] = useState("");
 
   const canSeeJustifications =
   user?.role === "super_admin" || user?.role === "registrador";
 
   useEffect(() => {
-    api.get("/attendance/dashboard-stats")
+    api.get(`/attendance/dashboard-stats${sessionPeriod ? `?periodId=${sessionPeriod}` : ''}`)
       .then(res => setStats(res.data))
       .catch(() => {})
       .finally(() => setLoading(false));
+
+    api.get("/periods").then(r => {
+      setPeriods(r.data);
+      const last = r.data.reduce((prev: any, curr: any) => curr.id > prev.id ? curr : prev, r.data[0]);
+      if (last) {
+        setAlertPeriod(String(last.id));
+        fetchAlertas(String(last.id));
+        setSessionPeriod(String(last.id));
+        fetchStats(String(last.id));
+      }
+    }).catch(() => {});
   }, []);
 
   if (loading) return (
@@ -367,6 +382,20 @@ function AdminDashboard() {
     ...d,
     date: typeof d.date === "string" ? d.date.substring(0, 10) : d.date,
   }));
+
+  async function fetchAlertas(periodId: string) {
+    try {
+      const res = await api.get(`/attendance/alerts/all${periodId ? `?periodId=${periodId}` : ''}`);
+      setAlertas(res.data);
+    } catch {}
+  }
+
+  async function fetchStats(periodId: string) {
+    try {
+      const res = await api.get(`/attendance/dashboard-stats${periodId ? `?periodId=${periodId}` : ''}`);
+      setStats(res.data);
+    } catch {}
+  }
 
   return (
     <div className="p-4 md:p-6 space-y-4 md:space-y-6 min-h-screen" style={{ background: "#070d14", color: "#e2e8f0" }}>
@@ -545,7 +574,7 @@ function AdminDashboard() {
                   const birthYear = parseInt(v.birthDate.substring(0, 4));
                   const age       = new Date().getFullYear() - birthYear;
                   return (
-                    <div key={v.id} className="flex items-center gap-3">
+                    <Link key={v.id} href={`/admin/volunteers/${v.id}`} className="flex items-center gap-3 rounded-xl p-1.5 -mx-1.5 transition-all duration-200 hover:bg-white/05">
                       {v.photoUrl
                         ? <img src={v.photoUrl?.startsWith("http") ? v.photoUrl : `${API_URL}/${v.photoUrl}`} className="w-9 h-9 rounded-full object-cover flex-shrink-0"
                             style={{ border: "1px solid rgba(244,114,182,0.30)" }} alt="" />
@@ -564,7 +593,7 @@ function AdminDashboard() {
                           : <span className="text-xs font-semibold px-2 py-1 rounded-full" style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.35)" }}>en {v.daysUntil}d</span>
                         }
                       </div>
-                    </div>
+                    </Link>
                   );
                 })}
               </div>
@@ -573,16 +602,27 @@ function AdminDashboard() {
 
           <div className="p-4 md:p-5 relative overflow-hidden" style={glass(BLUE_L)}>
             <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: `linear-gradient(90deg,${BLUE_L},transparent)` }} />
-            <h2 className="font-semibold mb-4 flex items-center gap-2 text-sm" style={{ color: "rgba(255,255,255,0.80)" }}>
-              <ListChecks size={15} color={BLUE_L} /> Últimas sesiones
-            </h2>
+              <div className="flex items-center justify-between flex-wrap gap-2 mb-4">
+                <h2 className="font-semibold flex items-center gap-2 text-sm"
+                  style={{ color: "rgba(255,255,255,0.80)" }}>
+                  <Activity size={15} color={BLUE_L} /> Últimas sesiones
+                </h2>
+                <select value={sessionPeriod} onChange={e => { setSessionPeriod(e.target.value); fetchStats(e.target.value); }}
+                  className="text-xs px-3 py-2 rounded-xl outline-none"
+                  style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.10)", color: "rgba(255,255,255,0.70)" }}>
+                  <option value="" style={{ background: "#0d1424" }}>Todos los períodos</option>
+                  {periods.map((p: any) => (
+                    <option key={p.id} value={p.id} style={{ background: "#0d1424" }}>{p.name}</option>
+                  ))}
+                </select>
+              </div>
             {(stats?.lastSessions ?? []).length === 0
               ? <p className="text-center py-6 text-sm" style={{ color: "rgba(255,255,255,0.25)" }}>Sin sesiones</p>
               : (
                 <div className="space-y-2">
                   {stats.lastSessions.map((s: any) => {
                     const total    = parseInt(s.total) || 0;
-                    const pct      = total === 0 ? 0 : Math.round((parseInt(s.puntuales) / total) * 100);
+                    const pct = total === 0 ? 0 : Math.round(((parseInt(s.puntuales) + parseInt(s.tardes)) / total) * 100);
                     const pctColor = pct >= 70 ? "#4ade80" : pct >= 40 ? ORANGE : "#f87171";
                     const dateLabel = formatSessionDate(s.createdAt ?? s.date);
                     return (
@@ -607,6 +647,86 @@ function AdminDashboard() {
             }
           </div>
         </div>
+        {/* ALERTAS */}
+          {alertas.length > 0 && (
+          <div className="relative overflow-hidden p-4 md:p-5" style={glass("#f87171")}>
+            <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: "linear-gradient(90deg,#f87171,transparent)" }} />
+            
+            <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
+              <h2 className="font-semibold flex items-center gap-2 text-sm" style={{ color: "rgba(255,255,255,0.80)" }}>
+                <AlertCircle size={15} color="#f87171" /> Voluntarios con alertas ({alertas.length})
+              </h2>
+              <select value={alertPeriod} onChange={e => { setAlertPeriod(e.target.value); fetchAlertas(e.target.value); }}
+                className="text-xs px-3 py-2 rounded-xl outline-none"
+                style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.10)", color: "rgba(255,255,255,0.70)" }}>
+                <option value="" style={{ background: "#0d1424" }}>Todos los períodos</option>
+                {periods.map((p: any) => (
+                  <option key={p.id} value={p.id} style={{ background: "#0d1424" }}>{p.name}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* FALTAS */}
+            {alertas.filter((a: any) => a.faltas >= 3).length > 0 && (
+              <div className="mb-4">
+                <p className="text-xs font-semibold uppercase tracking-widest mb-2 flex items-center gap-1" style={{ color: "#f87171" }}>
+                  <AlertCircle size={11} /> Por faltas ({alertas.filter((a: any) => a.faltas >= 3).length})
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {alertas.filter((a: any) => a.faltas >= 3)
+                    .sort((a: any, b: any) => b.faltas - a.faltas)
+                    .map((a: any) => (
+                    <div key={a.id} className="flex items-center justify-between p-3 rounded-xl"
+                      style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(248,113,113,0.20)" }}>
+                      <div>
+                        <p className="text-sm font-semibold" style={{ color: "#f1f5f9" }}>{a.name}</p>
+                        <span className="text-xs px-2 py-0.5 rounded-full font-semibold mt-1 inline-flex items-center gap-1"
+                          style={{ background: "rgba(248,113,113,0.15)", color: "#f87171" }}>
+                          <AlertCircle size={10} /> {a.faltas} faltas
+                        </span>
+                      </div>
+                      <Link href={`/admin/volunteers/${a.id}`}
+                        className="text-xs font-semibold px-2.5 py-1.5 rounded-lg flex-shrink-0"
+                        style={{ background: "rgba(248,113,113,0.12)", color: "#f87171", border: "1px solid rgba(248,113,113,0.22)" }}>
+                        Ver
+                      </Link>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* TARDANZAS */}
+            {alertas.filter((a: any) => a.tardanzas >= 3).length > 0 && (
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-widest mb-2 flex items-center gap-1" style={{ color: "#facc15" }}>
+                  <AlertTriangle size={11} /> Por tardanzas ({alertas.filter((a: any) => a.tardanzas >= 3).length})
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {alertas.filter((a: any) => a.tardanzas >= 3)
+                    .sort((a: any, b: any) => b.tardanzas - a.tardanzas)
+                    .map((a: any) => (
+                    <div key={a.id} className="flex items-center justify-between p-3 rounded-xl"
+                      style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(250,204,21,0.20)" }}>
+                      <div>
+                        <p className="text-sm font-semibold" style={{ color: "#f1f5f9" }}>{a.name}</p>
+                        <span className="text-xs px-2 py-0.5 rounded-full font-semibold mt-1 inline-flex items-center gap-1"
+                          style={{ background: "rgba(250,204,21,0.15)", color: "#facc15" }}>
+                          <AlertTriangle size={10} /> {a.tardanzas} tardanzas
+                        </span>
+                      </div>
+                      <Link href={`/admin/volunteers/${a.id}`}
+                        className="text-xs font-semibold px-2.5 py-1.5 rounded-lg flex-shrink-0"
+                        style={{ background: "rgba(250,204,21,0.12)", color: "#facc15", border: "1px solid rgba(250,204,21,0.22)" }}>
+                        Ver
+                      </Link>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -617,6 +737,6 @@ function AdminDashboard() {
 // ══════════════════════════════════════════════════════════════
 export default function DashboardPage() {
   const { user } = useAuth();
-  if (user?.role === "voluntario") return <VolunteerDashboard />;
+  if (user?.role === "voluntario" || user?.role === "xpress") return <VolunteerDashboard />;
   return <AdminDashboard />;
 }

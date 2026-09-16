@@ -148,11 +148,13 @@ function RegisterModal({ onClose }: { onClose: () => void }) {
   const streamRef = useRef<MediaStream | null>(null);
 
   useEffect(() => {
+    
     api.get('/sessions').then(res => {
       const active = (res.data ?? []).filter((s: any) => s.isActive);
       setSessions(active);
       if (active.length === 1) setSessionId(active[0].id);
     }).catch(() => {});
+    
     return () => stopCamera();
   }, []);
 
@@ -502,7 +504,7 @@ export default function AttendancePage() {
   const canRegister = me?.role === "super_admin" || me?.role === "registrador";
   const canRevert   = me?.role === "super_admin" || me?.role === "registrador";
 
-  if (me?.role === "voluntario") return <VolunteerAttendanceView />;
+  if (me?.role === "voluntario" || me?.role === "xpress") return <VolunteerAttendanceView />;
 
   const [filters,      setFilters]      = useState<Filters>({});
   const [rows,         setRows]         = useState<Row[]>([]);
@@ -511,6 +513,8 @@ export default function AttendancePage() {
   const [currentPage,  setCurrentPage]  = useState(1);
   const [loading,      setLoading]      = useState(false);
   const [applied,      setApplied]      = useState(false);
+  const [periods,      setPeriods]      = useState<any[]>([]);
+  const [filterPeriod, setFilterPeriod] = useState("");
   const [labels,       setLabels]       = useState({ volunteer: '', module: '', sede: '', session: '' });
   const [revertModal,  setRevertModal]  = useState<Row | null>(null);
   const [revertStatus, setRevertStatus] = useState<"puntual" | "tarde" | "falta">("puntual");
@@ -541,6 +545,17 @@ export default function AttendancePage() {
     } catch (e: any) { alert(e?.response?.data?.message ?? "Error al revertir"); }
     finally { setRevertSaving(false); }
   }
+
+  useEffect(() => {
+    api.get("/periods").then(r => {
+      setPeriods(r.data);
+      if (r.data.length > 0) {
+        const last = r.data.reduce((prev: any, curr: any) => curr.id > prev.id ? curr : prev, r.data[0]);
+        setFilterPeriod(String(last.id));
+        setFilters(p => ({ ...p, startDate: last.startDate, endDate: last.endDate }));
+      }
+    }).catch(() => {});
+  }, []);
 
   const handleApply      = () => { setCurrentPage(1); fetchReport(filters, 1); };
   const handlePageChange = (page: number) => { fetchReport(filters, page); window.scrollTo({ top: 0, behavior: 'smooth' }); };
@@ -655,6 +670,20 @@ export default function AttendancePage() {
           <div style={{ position: "relative", zIndex: 43 }}><label className="text-xs uppercase tracking-widest mb-1.5 block" style={{ color: "rgba(255,255,255,0.35)" }}>Módulo</label><Autocomplete placeholder="Buscar módulo..." fetchUrl="/modules" value={labels.module} onSelect={opt => { setFilters(p => ({ ...p, moduleId: opt?.id })); setLabels(p => ({ ...p, module: opt?.label ?? '' })); }} /></div>
           <div style={{ position: "relative", zIndex: 42 }}><label className="text-xs uppercase tracking-widest mb-1.5 block" style={{ color: "rgba(255,255,255,0.35)" }}>Sede</label><Autocomplete placeholder="Buscar sede..." fetchUrl="/sedes" value={labels.sede} onSelect={opt => { setFilters(p => ({ ...p, sedeId: opt?.id })); setLabels(p => ({ ...p, sede: opt?.label ?? '' })); }} /></div>
           <div style={{ position: "relative", zIndex: 41 }}><label className="text-xs uppercase tracking-widest mb-1.5 block" style={{ color: "rgba(255,255,255,0.35)" }}>Sesión</label><Autocomplete placeholder="Buscar sesión..." fetchUrl="/sessions" value={labels.session} mapItems={(item: any) => ({ id: item.id, label: item.name || `Sesión ${item.id}` })} onSelect={opt => { setFilters(p => ({ ...p, sessionId: opt?.id })); setLabels(p => ({ ...p, session: opt?.label ?? '' })); }} /></div>
+          <div style={{ position: "relative", zIndex: 2 }}>
+          <label className="text-xs uppercase tracking-widest mb-1.5 block" style={{ color: "rgba(255,255,255,0.35)" }}>Período</label>
+          <select style={IS} value={filterPeriod} onChange={e => {
+            setFilterPeriod(e.target.value);
+            const period = periods.find((p: any) => p.id === parseInt(e.target.value));
+            if (period) setFilters(p => ({ ...p, startDate: period.startDate, endDate: period.endDate }));
+            else setFilters(p => ({ ...p, startDate: undefined, endDate: undefined }));
+          }}>
+            <option value="" style={{ background: "#0d1424" }}>Todos los períodos</option>
+            {periods.map((p: any) => (
+              <option key={p.id} value={p.id} style={{ background: "#0d1424" }}>{p.name}</option>
+            ))}
+          </select>
+        </div>
           <div style={{ position: "relative", zIndex: 1 }}><label className="text-xs uppercase tracking-widest mb-1.5 block" style={{ color: "rgba(255,255,255,0.35)" }}>Desde</label><input type="date" style={IS} value={filters.startDate || ''} onChange={e => setFilters(p => ({ ...p, startDate: e.target.value || undefined }))} onFocus={fi} onBlur={fo} /></div>
           <div style={{ position: "relative", zIndex: 1 }}><label className="text-xs uppercase tracking-widest mb-1.5 block" style={{ color: "rgba(255,255,255,0.35)" }}>Hasta</label><input type="date" style={IS} value={filters.endDate || ''} onChange={e => setFilters(p => ({ ...p, endDate: e.target.value || undefined }))} onFocus={fi} onBlur={fo} /></div>
         </div>

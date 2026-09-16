@@ -57,8 +57,20 @@ export default function JustificationsPage() {
   const [saving, setSaving]         = useState(false);
   const [reverting, setReverting]   = useState(false);
   const [visible, setVisible]       = useState(PAGE_SIZE);
+  const [periods,      setPeriods]      = useState<any[]>([]);
+  const [filterPeriod, setFilterPeriod] = useState("");
 
   useEffect(() => { load(); }, [filter]);
+  
+  useEffect(() => { 
+    api.get("/periods").then(r => {
+      setPeriods(r.data);
+      if (r.data.length > 0) {
+        const last = r.data.reduce((prev: any, curr: any) => curr.id > prev.id ? curr : prev, r.data[0]);
+        setFilterPeriod(String(last.id));
+      }
+    }).catch(() => {}); 
+  }, []);
 
   async function load() {
     setLoading(true);
@@ -92,7 +104,13 @@ export default function JustificationsPage() {
     finally { setReverting(false); }
   }
 
-  const shown   = items.slice(0, visible);
+  const filteredItems = !filterPeriod ? items : items.filter((j: any) => {
+    const period = periods.find((p: any) => p.id === parseInt(filterPeriod));
+    if (!period) return true;
+    const jDate = new Date(j.createdAt);
+    return jDate >= new Date(period.startDate) && jDate <= new Date(period.endDate);
+  });
+  const shown = filteredItems.slice(0, visible);
   const hasMore = visible < items.length;
 
   return (
@@ -106,6 +124,14 @@ export default function JustificationsPage() {
 
       {/* TABS */}
       <div className="flex items-center gap-2 flex-wrap">
+        <select value={filterPeriod} onChange={e => { setFilterPeriod(e.target.value); setVisible(PAGE_SIZE); }}
+          className="text-xs px-3 py-2 rounded-xl outline-none"
+          style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.10)", color: "rgba(255,255,255,0.70)" }}>
+          <option value="" style={{ background: "#0d1424" }}>Todos los períodos</option>
+          {periods.map((p: any) => (
+            <option key={p.id} value={p.id} style={{ background: "#0d1424" }}>{p.name}</option>
+          ))}
+        </select>
         {TABS.map(s => {
           const active = filter === s;
           const color  = TAB_COLORS[s];

@@ -9,21 +9,24 @@ import {
   CalendarDays, ClipboardCheck, FileText, Clock,
   Award, Star, LogOut, ChevronRight, Menu, X,
 } from "lucide-react";
+import { Label } from "recharts";
+import api from "@/lib/axios";
 
 // ── Nav items con roles permitidos ───────────────────────────────
 const ALL_NAV_ITEMS = [
-  { href: "/admin",                label: "Dashboard",       icon: LayoutDashboard, roles: ["super_admin", "admin", "registrador", "voluntario"] },
+  { href: "/admin",                label: "Dashboard",       icon: LayoutDashboard, roles: ["super_admin", "admin", "registrador", "voluntario", "xpress"] },
   { href: "/admin/sedes",          label: "Sedes",           icon: Building2,       roles: ["super_admin"] },
   { href: "/admin/modules",        label: "Módulos",         icon: Boxes,           roles: ["super_admin"] },
   { href: "/admin/periods",        label: "Periodos",        icon: Clock,           roles: ["super_admin"] },
   { href: "/admin/positions",      label: "Cargos",          icon: Award,           roles: ["super_admin"] },
   { href: "/admin/volunteers",     label: "Voluntarios",     icon: Heart,           roles: ["super_admin", "admin", "registrador"] },
   { href: "/admin/users",          label: "Usuarios",        icon: Users,           roles: ["super_admin", "registrador"] },
+  { href: "/admin/evaluations",    label: "Evaluaciones",    icon: Star,            roles: ["super_admin", "admin"] },
   { href: "/admin/sessions",       label: "Sesiones",        icon: CalendarDays,    roles: ["super_admin", "admin", "registrador"] },
   { href: "/admin/attendance",     label: "Asistencia",      icon: ClipboardCheck,  roles: ["super_admin", "admin", "registrador"] },
   { href: "/admin/justifications", label: "Justificaciones", icon: FileText,        roles: ["super_admin", "registrador"] },
   { href: "/admin/management",     label: "Gestión",         icon: Star,            roles: ["super_admin", "admin"] },
-  { href: "/admin/profile",        label: "Perfil",          icon: Users,           roles: ["voluntario"] },
+  { href: "/admin/profile",        label: "Perfil",          icon: Users,           roles: ["voluntario", "xpress"] },
 ];
 
 // ── Prefijos de rutas permitidas por rol ─────────────────────────
@@ -32,6 +35,7 @@ const ALLOWED_PREFIXES: Record<string, string[]> = {
   admin:       ["/admin", "/admin/volunteers", "/admin/sessions", "/admin/attendance", "/admin/justifications", "/admin/management", "/admin/profile"],
   registrador: ["/admin", "/admin/volunteers", "/admin/users", "/admin/sessions", "/admin/attendance", "/admin/profile"],
   voluntario:  ["/admin", "/admin/profile"],
+  xpress:      ["/admin", "/admin/profile"],
 };
 
 function canAccess(role: string, pathname: string): boolean {
@@ -45,10 +49,20 @@ const ROLE_META: Record<string, { label: string; color: string; bg: string }> = 
   admin:       { label: "Admin",       color: "#4A90C4", bg: "rgba(74,144,196,0.15)"  },
   registrador: { label: "Registrador", color: "#E8722A", bg: "rgba(232,114,42,0.15)"  },
   voluntario:  { label: "Voluntario",  color: "#4ade80", bg: "rgba(74,222,128,0.15)"  },
+  xpress:      { label: "Xpress",      color: "#fb923c", bg: "rgba(251,146,60,0.15)" },
 };
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { user, isAuthenticated, logout } = useAuth();
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (user?.id) {
+      api.get(`/volunteers/by-user/${user.id}`)
+        .then(r => setPhotoUrl(r.data?.photoUrl ?? null))
+        .catch(() => {});
+    }
+  }, [user?.id]);
   const router   = useRouter();
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -56,7 +70,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   useEffect(() => {
     if (!isAuthenticated) { router.push("/login"); return; }
     const role = user?.role ?? "";
-    if (!["super_admin", "admin", "registrador", "voluntario"].includes(role)) {
+    if (!["super_admin", "admin", "registrador", "voluntario", "xpress"].includes(role)) {
       router.push("/unauthorized"); return;
     }
     // Bloquear acceso por URL directa
@@ -169,7 +183,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             rick.dev
           </a>
           <div className="my-2" style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }} />
-          <p className="text-xs" style={{ color: "rgba(255,255,255,0.18)" }}>Versión 1.0.0</p>
+          <p className="text-xs" style={{ color: "rgba(255,255,255,0.18)" }}>Versión 3.1.0</p>
         </div>
       </div>
     </>
@@ -204,10 +218,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </button>
           <img src="/voluntades_plus.png" alt="Voluntades+" className="h-8 w-auto" />
           <Link href="/admin/profile">
-            <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white"
-              style={{ background: "linear-gradient(135deg, #2E6FA8, #4A90C4)", boxShadow: "0 2px 10px rgba(46,111,168,0.40)" }}>
-              {user?.name?.charAt(0)?.toUpperCase() ?? "U"}
-            </div>
+            {photoUrl
+              ? <img src={photoUrl?.startsWith("http") ? photoUrl : `${process.env.NEXT_PUBLIC_API_URL}/${photoUrl}`}
+                  className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                  style={{ border: "1px solid rgba(46,111,168,0.25)" }} alt="" />
+              : <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
+                  style={{ background: "rgba(46,111,168,0.20)", color: "#4a9fd4" }}>
+                  {user?.name?.charAt(0)?.toUpperCase()}
+                </div>
+            }
           </Link>
         </header>
 

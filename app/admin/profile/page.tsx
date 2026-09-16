@@ -72,6 +72,9 @@ export default function ProfilePage() {
   const [saving,      setSaving]      = useState(false);
   const [msg,         setMsg]         = useState<{ type: "ok" | "err"; text: string } | null>(null);
 
+  const [myAlerts, setMyAlerts] = useState<{ faltas: number; tardanzas: number } | null>(null);
+  const [periods, setPeriods] = useState<any[]>([]);
+  const [filterPeriod, setFilterPeriod] = useState("");
   const [attRows,     setAttRows]     = useState<any[]>([]);
   const [justRows,    setJustRows]    = useState<any[]>([]);
   const [attLoading,  setAttLoading]  = useState(false);
@@ -105,6 +108,18 @@ export default function ProfilePage() {
       .then(res => setAttRows(res.data ?? []))
       .catch(() => setAttRows([]))
       .finally(() => setAttLoading(false));
+
+    api.get(`/attendance/volunteer/${volunteer.id}/alerts`)
+      .then(res => setMyAlerts(res.data))
+      .catch(() => {});
+
+    api.get("/periods").then(r => {
+      setPeriods(r.data);
+      if (r.data.length > 0) {
+        const last = r.data.reduce((prev: any, curr: any) => curr.id > prev.id ? curr : prev, r.data[0]);
+        setFilterPeriod(String(last.id));
+      }
+    }).catch(() => {});
   }, [volunteer]);
 
   useEffect(() => {
@@ -205,9 +220,15 @@ export default function ProfilePage() {
     ...(volunteer.isStudent ? [{ label: "Institución", value: volunteer.institution, icon: <BookOpen size={12} /> }] : []),
   ] : [];
 
-  const puntuales = attRows.filter(r => r.status?.toLowerCase() === "puntual").length;
-  const tardes    = attRows.filter(r => r.status?.toLowerCase() === "tarde").length;
-  const faltas    = attRows.filter(r => r.status?.toLowerCase() === "falta").length;
+  const filteredAtt = !filterPeriod ? attRows : attRows.filter((a: any) => {
+    const period = periods.find((p: any) => p.id === parseInt(filterPeriod));
+    if (!period) return true;
+    const d = new Date(a.session?.date ?? a.date);
+    return d >= new Date(period.startDate) && d <= new Date(period.endDate);
+  });
+  const puntuales = filteredAtt.filter((a: any) => a.status === "puntual").length;
+  const tardes    = filteredAtt.filter((a: any) => a.status === "tarde").length;
+  const faltas    = filteredAtt.filter((a: any) => a.status === "falta").length;
 
   return (
     <div className="p-4 md:p-6 space-y-5 min-h-screen" style={{ background: "#070d14", color: "#e2e8f0" }}>
@@ -228,10 +249,13 @@ export default function ProfilePage() {
               <div className="relative flex-shrink-0">
                 <div className="w-20 h-20 rounded-2xl overflow-hidden flex items-center justify-center"
                   style={{ border: `2px solid ${BLUE}44`, background: `${BLUE}20` }}>
-                  {photoUrl
-                    ? <img src={photoUrl} className="w-full h-full object-cover" alt="foto" />
-                    : <span className="text-3xl font-bold" style={{ color: BLUE_L }}>{authUser?.name?.charAt(0)?.toUpperCase()}</span>
-                  }
+                    {photoUrl
+                      ? <img src={photoUrl?.startsWith("http") ? photoUrl : `${process.env.NEXT_PUBLIC_API_URL}/${photoUrl}`}
+                          className="w-full h-full object-cover" alt="" />
+                      : <span className="text-sm font-bold" style={{ color: BLUE_L }}>
+                          {authUser?.name?.charAt(0)?.toUpperCase()}
+                        </span>
+                    }
                 </div>
                 <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center"
                   style={{ background: roleInfo.bg, border: `1px solid ${roleInfo.color}44` }}>
@@ -363,11 +387,44 @@ export default function ProfilePage() {
 
       {volunteer && (
         <div className="space-y-5">
-
+                  {/* ALERTAS PERSONALES */}
+        {myAlerts && (myAlerts.faltas >= 3 || myAlerts.tardanzas >= 3) && (
+          <div className="relative overflow-hidden p-4 rounded-2xl"
+            style={{ background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.25)" }}>
+            <p className="text-sm font-bold mb-2" style={{ color: "#f87171" }}>🚨 Tienes alertas en el período actual</p>
+            <div className="flex gap-2 flex-wrap">
+              {myAlerts.faltas >= 3 && (
+                <span className="text-xs font-semibold px-3 py-1.5 rounded-full"
+                  style={{ background: "rgba(248,113,113,0.15)", color: "#f87171", border: "1px solid rgba(248,113,113,0.30)" }}>
+                  🚨 {myAlerts.faltas} faltas
+                </span>
+              )}
+              {myAlerts.tardanzas >= 3 && (
+                <span className="text-xs font-semibold px-3 py-1.5 rounded-full"
+                  style={{ background: "rgba(250,204,21,0.15)", color: "#facc15", border: "1px solid rgba(250,204,21,0.30)" }}>
+                  ⚠️ {myAlerts.tardanzas} tardanzas
+                </span>
+              )}
+            </div>
+            <p className="text-xs mt-2" style={{ color: "rgba(255,255,255,0.35)" }}>
+              Comunícate con tu coordinador para regularizar tu situación.
+            </p>
+          </div>
+        )}
           <div>
-            <p className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: "rgba(255,255,255,0.30)" }}>
+          <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
+            <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "rgba(255,255,255,0.30)" }}>
               Mi asistencia
             </p>
+            <select value={filterPeriod} onChange={e => setFilterPeriod(e.target.value)}
+              className="text-xs px-3 py-2 rounded-xl outline-none"
+              style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.10)", color: "rgba(255,255,255,0.70)" }}>
+              <option value="" style={{ background: "#0d1424" }}>Todos los períodos</option>
+              {periods.map((p: any) => (
+                <option key={p.id} value={p.id} style={{ background: "#0d1424" }}>{p.name}</option>
+              ))}
+            </select>
+          </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {[
                 { label: "Total",     value: attRows.length, color: "rgba(255,255,255,0.80)", accent: BLUE      },
@@ -413,9 +470,9 @@ export default function ProfilePage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {attRows.map((row, i) => (
+                    {filteredAtt.map((row, i) => (
                       <tr key={row.id}
-                        style={{ borderBottom: i < attRows.length - 1 ? "1px solid rgba(255,255,255,0.04)" : "none", transition: "background 0.15s" }}
+                        style={{ borderBottom: i < filteredAtt.length - 1 ? "1px solid rgba(255,255,255,0.04)" : "none", transition: "background 0.15s" }}
                         onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.03)")}
                         onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
                         <td className="px-4 py-3 font-semibold" style={{ color: "#f1f5f9" }}>{row.sessionName ?? "—"}</td>

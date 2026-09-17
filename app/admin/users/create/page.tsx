@@ -4,7 +4,8 @@ import { useState } from "react";
 import { usersApi } from "@/services/users";
 import { useRouter } from "next/navigation";
 import api from "@/lib/axios";
-import { ArrowLeft, User, Mail, Lock, Shield, Zap, AlertCircle, Plus } from "lucide-react";
+import { ArrowLeft, User, Mail, Lock, Shield, Zap, AlertCircle, Plus, CreditCard } from "lucide-react";
+import Link from "next/link";
 
 const BLUE   = "#2E6FA8";
 const BLUE_L = "#4A90C4";
@@ -59,6 +60,9 @@ export default function CreateUserPage() {
   const [password, setPassword] = useState("");
   const [roleId, setRoleId]     = useState(3);
   const [saving, setSaving]     = useState(false);
+  const [dni,         setDni]         = useState("");
+  const [dniAlert,    setDniAlert]    = useState<{ volunteerId: number; volunteerName: string } | null>(null);
+  const [checkingDni, setCheckingDni] = useState(false);
   const [showSuggestion, setShowSuggestion] = useState(false);
   const [emailExists, setEmailExists]       = useState(false);
 
@@ -95,15 +99,30 @@ export default function CreateUserPage() {
     await checkEmail(emailSuggestion);
   }
 
+  async function handleCheckDni(value: string) {
+    const clean = value.replace(/\D/g, "").slice(0, 8);
+    setDni(clean);
+    setDniAlert(null);
+    if (clean.length === 8) {
+      setCheckingDni(true);
+      try {
+        const res = await api.get(`/users/check-dni/${clean}`);
+        if (res.data.exists) setDniAlert(res.data);
+      } catch {}
+      finally { setCheckingDni(false); }
+    }
+  }
+
   async function create(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim())     return alert("El nombre es obligatorio");
     if (!email.trim())    return alert("El email es obligatorio");
     if (emailExists)      return alert("Este email ya está registrado");
     if (!password.trim()) return alert("La contraseña es obligatoria");
+    if (dniAlert)         return alert("Este DNI ya está registrado como voluntario");
     setSaving(true);
     try {
-      await usersApi.create({ name, email, password, roleId });
+      await usersApi.create({ name, email, password, roleId, dni: dni || undefined });
       router.push("/admin/users");
     } catch (err: any) {
       alert(err?.response?.data?.message ?? "Error al crear el usuario");
@@ -146,6 +165,38 @@ export default function CreateUserPage() {
             boxShadow: "0 8px 32px rgba(0,0,0,0.30)",
           }}>
           <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: `linear-gradient(90deg,${BLUE},${BLUE_L},transparent)` }} />
+
+          {/* DNI */}
+          <div>
+            <Label icon={<CreditCard size={11} />}>DNI</Label>
+            <input
+              style={IS}
+              placeholder="12345678"
+              maxLength={8}
+              value={dni}
+              onChange={e => handleCheckDni(e.target.value)}
+              onFocus={fi} onBlur={fo}
+            />
+            {checkingDni && (
+              <p className="text-xs mt-1" style={{ color: "rgba(255,255,255,0.40)" }}>Verificando DNI...</p>
+            )}
+            {dniAlert && (
+              <div className="mt-2 p-3 rounded-xl flex items-center justify-between gap-2"
+                style={{ background: "rgba(248,113,113,0.10)", border: "1px solid rgba(248,113,113,0.25)" }}>
+                <div className="flex items-center gap-2">
+                  <AlertCircle size={14} color="#f87171" />
+                  <p className="text-xs font-semibold" style={{ color: "#f87171" }}>
+                    {dniAlert.volunteerName} ya está registrado
+                  </p>
+                </div>
+                <Link href={`/admin/volunteers/${dniAlert.volunteerId}`}
+                  className="text-xs font-semibold px-3 py-1.5 rounded-lg flex-shrink-0"
+                  style={{ background: "rgba(248,113,113,0.15)", color: "#f87171" }}>
+                  Ver ficha
+                </Link>
+              </div>
+            )}
+          </div>
 
           {/* NOMBRE */}
           <div>

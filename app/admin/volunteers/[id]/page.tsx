@@ -275,7 +275,7 @@ export default function VolunteerDetailPage() {
     { key: "info",         label: "Información",  icon: <Users size={13} />         },
     { key: "docs",         label: "Documentos",   icon: <FileText size={13} />      },
     { key: "asistencia",   label: "Asistencia",   icon: <ClipboardList size={13} /> },
-    { key: "medica",       label: "Ficha médica", icon: <Heart size={13} />         },
+    { key: "medica",       label: "Ficha Social", icon: <Heart size={13} />         },
     { key: "evaluaciones", label: "Evaluaciones", icon: <Star size={13} />          },
   ];
 
@@ -416,7 +416,7 @@ export default function VolunteerDetailPage() {
                   ["Teléfono", volunteer.phone],
                   ["Emergencia", volunteer.emergencyContact],
                   ["Sangre", volunteer.bloodType],
-                  ["Nacimiento", volunteer.birthDate?.substring(0, 10)],
+                  ["Nacimiento AAAA/MM/DD", volunteer.birthDate?.substring(0, 10)],
                   ["Género", volunteer.gender === "M" ? "Masculino" : "Femenino"],
                   ["Módulo", volunteer.module?.name],
                   ["Sede", volunteer.sede?.name],
@@ -675,55 +675,39 @@ export default function VolunteerDetailPage() {
       {tab === "medica" && (
         <div className="relative overflow-hidden p-5" style={glass("#f472b6")}>
           <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: "linear-gradient(90deg,#f472b6,transparent)" }} />
-            <h2 className="font-semibold text-sm flex items-center gap-2" style={{ color: "rgba(255,255,255,0.80)" }}>
-              <Heart size={14} color={BLUE_L} /> Historial de asistencia
-            </h2>
-          {!(volunteer.insuranceType || volunteer.allergies || volunteer.medicalCondition || volunteer.disability) ? (
-            <p className="text-sm text-center py-8" style={{ color: "rgba(255,255,255,0.30)" }}>
-              No hay información médica registrada. Edita el voluntario para agregarla.
+          <h2 className="font-semibold text-sm mb-4 flex items-center gap-2" style={{ color: "rgba(255,255,255,0.80)" }}>
+            <Heart size={14} color="#f472b6" /> Ficha médica y seguro
+          </h2>
+
+          {/* Observaciones */}
+          <div className="mb-4">
+            <p className="text-xs mb-1" style={{ color: "rgba(255,255,255,0.30)" }}>Observaciones médicas</p>
+            <p className="text-sm font-medium" style={{ color: volunteer.disability ? "rgba(255,255,255,0.80)" : "rgba(255,255,255,0.25)" }}>
+              {volunteer.disability || "Sin observaciones registradas"}
             </p>
-          ) : (
-            <div className="grid grid-cols-2 gap-x-6 gap-y-4 text-sm">
-              {[
-                ["Tipo de seguro",   volunteer.insuranceType],
-                ["Nombre seguro",    volunteer.insuranceName],
-                ["Nro. de póliza",   volunteer.insuranceNumber],
-                ["Clínica/Hospital", volunteer.insuranceHospital],
-                ["Vigencia",         volunteer.insuranceExpiry?.substring(0, 10)],
-                ["Alergias",         volunteer.allergies],
-                ["Cond. médica",     volunteer.medicalCondition],
-                ["Discapacidad",     volunteer.disability],
-              ].map(([label, value]: any) => (
-                <div key={label}>
-                  <p className="text-xs mb-0.5" style={{ color: "rgba(255,255,255,0.30)" }}>{label}</p>
-                  <p className="font-medium text-sm" style={{ color: value ? "rgba(255,255,255,0.80)" : "rgba(255,255,255,0.25)" }}>
-                    {value || "—"}
-                  </p>
-                </div>
-              ))}
-            </div>
-          )}
+          </div>
+
           {/* PDF del seguro */}
           {(() => {
             const seguroDoc = volunteer.documents?.find((d: any) => d.type === "seguro_vida");
-            return seguroDoc ? (
+            return (
               <div className="mt-4 pt-4" style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}>
                 <p className="text-xs mb-2 font-semibold uppercase tracking-widest" style={{ color: "rgba(255,255,255,0.30)" }}>
                   Documento del seguro
                 </p>
-                <button onClick={() => downloadDocument(seguroDoc.id, seguroDoc.type)}
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200"
-                  style={{ background: "rgba(244,114,182,0.12)", color: "#f472b6", border: "1px solid rgba(244,114,182,0.25)" }}
-                  onMouseEnter={e => (e.currentTarget.style.background = "rgba(244,114,182,0.22)")}
-                  onMouseLeave={e => (e.currentTarget.style.background = "rgba(244,114,182,0.12)")}>
-                  <Download size={14} /> Descargar PDF del seguro
-                </button>
-              </div>
-            ) : (
-              <div className="mt-4 pt-4" style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}>
-                <p className="text-xs" style={{ color: "rgba(255,255,255,0.25)" }}>
-                  📎 Sin PDF del seguro adjunto — súbelo desde la pestaña Documentos
-                </p>
+                {seguroDoc ? (
+                  <button onClick={() => downloadDocument(seguroDoc.id, seguroDoc.type)}
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200"
+                    style={{ background: "rgba(244,114,182,0.12)", color: "#f472b6", border: "1px solid rgba(244,114,182,0.25)" }}
+                    onMouseEnter={e => (e.currentTarget.style.background = "rgba(244,114,182,0.22)")}
+                    onMouseLeave={e => (e.currentTarget.style.background = "rgba(244,114,182,0.12)")}>
+                    <Download size={14} /> Descargar PDF del seguro
+                  </button>
+                ) : (
+                  <p className="text-xs" style={{ color: "rgba(255,255,255,0.25)" }}>
+                    📎 Sin PDF del seguro adjunto — súbelo desde la pestaña Documentos
+                  </p>
+                )}
               </div>
             );
           })()}

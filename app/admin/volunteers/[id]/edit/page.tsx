@@ -404,83 +404,52 @@ export default function EditVolunteerPage() {
         {/* FICHA MÉDICA / SEGURO */}
         <SectionCard title="Ficha médica y seguro" icon={<Heart size={14} color="#f472b6" />} accent="#f472b6">
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label icon={<Heart size={11} />}>Tipo de seguro</Label>
-              <select style={IS} value={form.insuranceType ?? ""} onChange={e => set("insuranceType", e.target.value)} onFocus={fi} onBlur={fo}>
-                <option value="" style={{ background: "#0d1424" }}>Sin seguro</option>
-                <option value="SIS" style={{ background: "#0d1424" }}>SIS (Seguro Estatal)</option>
-                <option value="privado" style={{ background: "#0d1424" }}>Seguro Privado</option>
-                <option value="otro" style={{ background: "#0d1424" }}>Otro</option>
-              </select>
-            </div>
-            <div>
-              <Label>Nombre del seguro</Label>
-              <input style={IS} placeholder="Ej: Rimac, Pacífico..." value={form.insuranceName ?? ""} onChange={e => set("insuranceName", e.target.value)} onFocus={fi} onBlur={fo} />
-            </div>
-            <div>
-              <Label>Número de póliza</Label>
-              <input style={IS} placeholder="Nro. de póliza o afiliado" value={form.insuranceNumber ?? ""} onChange={e => set("insuranceNumber", e.target.value)} onFocus={fi} onBlur={fo} />
-            </div>
-            <div>
-              <Label>Clínica / Hospital asignado</Label>
-              <input style={IS} placeholder="Ej: Clínica San Pablo" value={form.insuranceHospital ?? ""} onChange={e => set("insuranceHospital", e.target.value)} onFocus={fi} onBlur={fo} />
-            </div>
-            <div>
-              <Label>Vigencia del seguro</Label>
-              <input type="date" style={IS} value={form.insuranceExpiry ?? ""} onChange={e => set("insuranceExpiry", e.target.value)} onFocus={fi} onBlur={fo} />
-            </div>
-            <div>
-              <Label>Alergias conocidas</Label>
-              <input style={IS} placeholder="Ej: Penicilina, polvo..." value={form.allergies ?? ""} onChange={e => set("allergies", e.target.value)} onFocus={fi} onBlur={fo} />
-            </div>
             <div className="col-span-2">
-              <Label>Condición médica relevante</Label>
-              <input style={IS} placeholder="Ej: Asma, diabetes..." value={form.medicalCondition ?? ""} onChange={e => set("medicalCondition", e.target.value)} onFocus={fi} onBlur={fo} />
+              <Label icon={<FileText size={11} />}>Observaciones médicas (opcional)</Label>
+              <input style={IS} placeholder="Ej: condición médica relevante, alergias, etc..."
+                value={form.disability ?? ""}
+                onChange={e => set("disability", e.target.value)}
+                onFocus={fi} onBlur={fo} />
             </div>
+
+            {/* PDF del seguro */}
             <div className="col-span-2">
-              <Label>Discapacidad</Label>
-              <input style={IS} placeholder="Descripción o dejar vacío si no aplica" value={form.disability ?? ""} onChange={e => set("disability", e.target.value)} onFocus={fi} onBlur={fo} />
-            </div>
-          </div>
-          {/* PDF del seguro */}
-          <div className="col-span-2">
-            <Label icon={<FileText size={11} />}>PDF del seguro (opcional)</Label>
-            {(() => {
-              const seguroDoc = documents.find((d: any) => d.type === "seguro_vida");
-              return (
-                <div className="space-y-2">
-                  {seguroDoc && (
-                    <div className="flex items-center justify-between p-3 rounded-xl"
-                      style={{ background: "rgba(244,114,182,0.06)", border: "1px solid rgba(244,114,182,0.18)" }}>
-                      <span className="text-xs font-medium" style={{ color: "#f472b6" }}>✓ PDF adjunto</span>
-                      <button onClick={() => downloadDocument(seguroDoc.id, seguroDoc.type)}
-                        className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all duration-200"
-                        style={{ background: "rgba(244,114,182,0.12)", color: "#f472b6", border: "1px solid rgba(244,114,182,0.25)" }}
-                        onMouseEnter={e => (e.currentTarget.style.background = "rgba(244,114,182,0.22)")}
-                        onMouseLeave={e => (e.currentTarget.style.background = "rgba(244,114,182,0.12)")}>
-                        <Download size={12} /> Descargar
+              <Label icon={<FileText size={11} />}>PDF del seguro (opcional)</Label>
+              {(() => {
+                const seguroDoc = documents.find((d: any) => d.type === "seguro_vida");
+                return (
+                  <div className="space-y-2">
+                    {seguroDoc && (
+                      <div className="flex items-center justify-between p-3 rounded-xl"
+                        style={{ background: "rgba(244,114,182,0.06)", border: "1px solid rgba(244,114,182,0.18)" }}>
+                        <span className="text-xs font-medium" style={{ color: "#f472b6" }}>✓ PDF adjunto</span>
+                        <button onClick={() => downloadDocument(seguroDoc.id, seguroDoc.type)}
+                          className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg"
+                          style={{ background: "rgba(244,114,182,0.12)", color: "#f472b6", border: "1px solid rgba(244,114,182,0.25)" }}>
+                          <Download size={12} /> Descargar
+                        </button>
+                      </div>
+                    )}
+                    <label className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold cursor-pointer transition-all duration-200"
+                      style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.60)" }}
+                      onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.10)")}
+                      onMouseLeave={e => (e.currentTarget.style.background = "rgba(255,255,255,0.06)")}>
+                      <FileText size={14} />
+                      <span>{docFile && docType === "seguro_vida" ? (docFile as File).name : seguroDoc ? "Reemplazar PDF" : "Subir PDF del seguro"}</span>
+                      <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden"
+                        onChange={e => { setDocType("seguro_vida"); setDocFile(e.target.files?.[0] ?? null); }} />
+                    </label>
+                    {docFile && docType === "seguro_vida" && (
+                      <button onClick={uploadDocument}
+                        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold"
+                        style={{ background: "rgba(244,114,182,0.12)", color: "#f472b6", border: "1px solid rgba(244,114,182,0.25)" }}>
+                        <Upload size={14} /> Subir PDF
                       </button>
-                    </div>
-                  )}
-                  <label className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold cursor-pointer transition-all duration-200"
-                    style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.60)" }}
-                    onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.10)")}
-                    onMouseLeave={e => (e.currentTarget.style.background = "rgba(255,255,255,0.06)")}>
-                    <FileText size={14} />
-                    <span>{docFile && docType === "seguro_vida" ? (docFile as File).name : seguroDoc ? "Reemplazar PDF" : "Subir PDF del seguro"}</span>
-                    <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden"
-                      onChange={e => { setDocType("seguro_vida"); setDocFile(e.target.files?.[0] ?? null); }} />
-                  </label>
-                  {docFile && docType === "seguro_vida" && (
-                    <button onClick={uploadDocument}
-                      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200"
-                      style={{ background: "rgba(244,114,182,0.12)", color: "#f472b6", border: "1px solid rgba(244,114,182,0.25)" }}>
-                      <Upload size={14} /> Subir PDF
-                    </button>
-                  )}
-                </div>
-              );
-            })()}
+                    )}
+                  </div>
+                );
+              })()}
+            </div>
           </div>
         </SectionCard>
 

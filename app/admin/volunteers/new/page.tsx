@@ -135,7 +135,7 @@ export default function NewVolunteerPage() {
 
   function handleUserChange(userId: string) {
     const user = users.find(u => String(u.id) === userId);
-    setForm(f => ({ ...f, userId, fullName: user?.name ?? f.fullName }));
+    setForm(f => ({ ...f, userId, fullName: user?.name ?? f.fullName, dni: user?.dni ?? f.dni }));
   }
 
   function handleSedeChange(sedeId: string) {
@@ -285,6 +285,13 @@ export default function NewVolunteerPage() {
                 value={form.phone} onChange={e => set("phone", e.target.value)} onFocus={fi} onBlur={fo} />
             </div>
             <div>
+              <Label icon={<Heart size={11} />}>Tipo de sangre</Label>
+              <select style={IS} value={form.bloodType} onChange={e => set("bloodType", e.target.value)} onFocus={fi} onBlur={fo}>
+                <option value="" style={{ background: "#0d1424" }}>Seleccionar</option>
+                {BLOOD_TYPES.map(b => <option key={b} value={b} style={{ background: "#0d1424" }}>{b}</option>)}
+              </select>
+            </div>
+            <div>
               <Label icon={<Phone size={11} />}>Contacto de emergencia</Label>
               <input style={IS} placeholder="987654321 - Juan Pérez - Padre" maxLength={60}
                 value={form.emergencyContact}
@@ -294,7 +301,7 @@ export default function NewVolunteerPage() {
             </div>
 
             <div>
-              <Label icon={<Calendar size={11} />}>Fecha de nacimiento</Label>
+              <Label icon={<Calendar size={11} />}>Fecha de nacimiento MM/DD/AAAA</Label>
               <input type="date" style={IS} value={form.birthDate} onChange={e => set("birthDate", e.target.value)} onFocus={fi} onBlur={fo} />
             </div>
             <div>
@@ -352,74 +359,36 @@ export default function NewVolunteerPage() {
         </SectionCard>
 
 
-        {/* FICHA MÉDICA / SEGURO */}
-        <SectionCard title="Ficha médica y seguro" icon={<Heart size={14} color="#f472b6" />} accent="#f472b6">
+        {/* FICHA SOCIAL / SEGURO */}
+        <SectionCard title="Ficha Social" icon={<Heart size={14} color="#f472b6" />} accent="#f472b6">
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label icon={<Heart size={11} />}>Tipo de sangre</Label>
-              <select style={IS} value={form.bloodType} onChange={e => set("bloodType", e.target.value)} onFocus={fi} onBlur={fo}>
-                <option value="" style={{ background: "#0d1424" }}>Seleccionar</option>
-                {BLOOD_TYPES.map(b => <option key={b} value={b} style={{ background: "#0d1424" }}>{b}</option>)}
-              </select>
-            </div>
-            <div>
-              <Label icon={<Heart size={11} />}>Tipo de seguro</Label>
-              <select style={IS} value={form.insuranceType} onChange={e => set("insuranceType", e.target.value)} onFocus={fi} onBlur={fo}>
-                <option value="" style={{ background: "#0d1424" }}>Sin seguro</option>
-                <option value="SIS" style={{ background: "#0d1424" }}>SIS (Seguro Estatal)</option>
-                <option value="privado" style={{ background: "#0d1424" }}>Seguro Privado</option>
-                <option value="otro" style={{ background: "#0d1424" }}>Otro</option>
-              </select>
-            </div>
-            <div>
-              <Label>Nombre del seguro</Label>
-              <input style={IS} placeholder="Ej: Rimac, Pacífico..." value={form.insuranceName} onChange={e => set("insuranceName", e.target.value)} onFocus={fi} onBlur={fo} />
-            </div>
-            <div>
-              <Label>Número de póliza</Label>
-              <input style={IS} placeholder="Nro. de póliza o afiliado" value={form.insuranceNumber} onChange={e => set("insuranceNumber", e.target.value)} onFocus={fi} onBlur={fo} />
-            </div>
-            <div>
-              <Label>Clínica / Hospital asignado</Label>
-              <input style={IS} placeholder="Ej: Clínica San Pablo" value={form.insuranceHospital} onChange={e => set("insuranceHospital", e.target.value)} onFocus={fi} onBlur={fo} />
-            </div>
-            <div>
-              <Label>Vigencia del seguro</Label>
-              <input type="date" style={IS} value={form.insuranceExpiry} onChange={e => set("insuranceExpiry", e.target.value)} onFocus={fi} onBlur={fo} />
-            </div>
-            <div>
-              <Label>Alergias conocidas</Label>
-              <input style={IS} placeholder="Ej: Penicilina, polvo..." value={form.allergies} onChange={e => set("allergies", e.target.value)} onFocus={fi} onBlur={fo} />
-            </div>
-            <div>
-              <Label>Condición médica relevante</Label>
-              <input style={IS} placeholder="Ej: Asma, diabetes..." value={form.medicalCondition} onChange={e => set("medicalCondition", e.target.value)} onFocus={fi} onBlur={fo} />
-            </div>
             <div className="col-span-2">
-              <Label>Discapacidad</Label>
-              <input style={IS} placeholder="Descripción o dejar vacío si no aplica" value={form.disability} onChange={e => set("disability", e.target.value)} onFocus={fi} onBlur={fo} />
-            </div>
-          </div>
-          {/* PDF del seguro */}
-          <div className="col-span-2">
-            <Label icon={<FileText size={11} />}>PDF del seguro (opcional)</Label>
-            <div className="flex items-center gap-3">
-              <label className="flex-1 flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold cursor-pointer transition-all duration-200"
-                style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", color: documents.seguro_vida ? "#f472b6" : "rgba(255,255,255,0.60)" }}
-                onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.10)")}
-                onMouseLeave={e => (e.currentTarget.style.background = "rgba(255,255,255,0.06)")}>
-                <FileText size={14} />
-                <span>{documents.seguro_vida ? (documents.seguro_vida as File).name : "Seleccionar PDF del seguro"}</span>
-                <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden"
-                  onChange={e => setDocuments(d => ({ ...d, seguro_vida: e.target.files?.[0] ?? null }))} />
-              </label>
-              {documents.seguro_vida && (
-                <button onClick={() => setDocuments(d => ({ ...d, seguro_vida: null }))}
-                  className="text-xs px-3 py-2 rounded-xl"
-                  style={{ background: "rgba(248,113,113,0.10)", color: "#f87171", border: "1px solid rgba(248,113,113,0.18)" }}>
-                  Quitar
-                </button>
-              )}
+              <Label icon={<FileText size={11} />}>PDF del seguro (opcional)</Label>
+              <div className="flex items-center gap-3">
+                <label className="flex-1 flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold cursor-pointer transition-all duration-200"
+                  style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", color: documents.seguro_vida ? "#f472b6" : "rgba(255,255,255,0.60)" }}
+                  onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.10)")}
+                  onMouseLeave={e => (e.currentTarget.style.background = "rgba(255,255,255,0.06)")}>
+                  <FileText size={14} />
+                  <span>{documents.seguro_vida ? (documents.seguro_vida as File).name : "Seleccionar PDF del seguro"}</span>
+                  <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden"
+                    onChange={e => setDocuments(d => ({ ...d, seguro_vida: e.target.files?.[0] ?? null }))} />
+                </label>
+                {documents.seguro_vida && (
+                  <button onClick={() => setDocuments(d => ({ ...d, seguro_vida: null }))}
+                    className="text-xs px-3 py-2 rounded-xl"
+                    style={{ background: "rgba(248,113,113,0.10)", color: "#f87171", border: "1px solid rgba(248,113,113,0.18)" }}>
+                    Quitar
+                  </button>
+                )}
+                <div className="col-span-2">
+                  <Label icon={<FileText size={11} />}>Observaciones médicas (opcional)</Label>
+                  <input style={IS} placeholder="Ej: condición médica relevante, alergias, etc..." 
+                    value={form.disability ?? ""} 
+                    onChange={e => set("disability", e.target.value)} 
+                    onFocus={fi} onBlur={fo} />
+                </div>
+              </div>
             </div>
           </div>
         </SectionCard>

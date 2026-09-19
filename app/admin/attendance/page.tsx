@@ -494,7 +494,7 @@ function VolunteerAttendanceView() {
 interface Filters { volunteerId?: number; moduleId?: number; sedeId?: number; sessionId?: number; startDate?: string; endDate?: string; }
 interface Stats { total: number; presentes: number; tarde: number; faltas: number; porcentaje: number; }
 interface Pagination { total: number; page: number; limit: number; totalPages: number; }
-interface Row { id: number; volunteer: string; module: string; sede: string; session: string; sessionDate: string; status: string; registeredBy: string; createdAt: string; justification: { status: string; reason: string } | null; }
+interface Row { id: number; volunteer: string; dni: string; module: string; sede: string; session: string; sessionDate: string; status: string; registeredBy: string; createdAt: string; justification: { status: string; reason: string } | null; }
 
 export default function AttendancePage() {
   const { user: me } = useAuth();
@@ -560,7 +560,7 @@ export default function AttendancePage() {
   const handleApply      = () => { setCurrentPage(1); fetchReport(filters, 1); };
   const handlePageChange = (page: number) => { fetchReport(filters, page); window.scrollTo({ top: 0, behavior: 'smooth' }); };
   const handleClear      = () => { setFilters({}); setLabels({ volunteer: '', module: '', sede: '', session: '' }); setRows([]); setStats(null); setPagination(null); setApplied(false); setCurrentPage(1); };
-  const handleExport     = async () => {
+  const handleExport = async () => {
     try {
       const token = localStorage.getItem("token");
       const clean = Object.fromEntries(Object.entries(filters).filter(([_, v]) => v !== undefined && v !== ""));
@@ -568,11 +568,92 @@ export default function AttendancePage() {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/attendance/report?${query}`, { headers: { Authorization: `Bearer ${token}` } });
       const data = await res.json();
       const allRows: Row[] = data.rows || [];
-      const excelData = allRows.map(row => ({ "Voluntario": row.volunteer, "Módulo": row.module, "Sede": row.sede, "Sesión": row.session, "Fecha sesión": row.sessionDate, "Estado": row.status, "Justificación": row.justification ? `${row.justification.status} — ${row.justification.reason}` : "—", "Registrado por": row.registeredBy || "—", "Hora registro": row.createdAt ? new Date(row.createdAt).toLocaleString("es-PE") : "—" }));
-      const ws = XLSX.utils.json_to_sheet(excelData);
-      ws["!cols"] = [{ wch: 28 },{ wch: 20 },{ wch: 22 },{ wch: 25 },{ wch: 14 },{ wch: 12 },{ wch: 35 },{ wch: 20 },{ wch: 20 }];
+
       const wb = XLSX.utils.book_new();
+      const wsData: any[][] = [];
+
+      // Título
+      wsData.push(["REPORTE DE ASISTENCIA - VOLUNTADES+"]);
+      wsData.push([`Generado: ${new Date().toLocaleDateString("es-PE")}`]);
+      wsData.push([]);
+
+      // Encabezados
+      wsData.push(["N°", "NOMBRE COMPLETO", "DNI", "MÓDULO", "SEDE", "SESIÓN", "FECHA", "ESTADO", "JUSTIFICACIÓN", "REGISTRADO POR"]);
+
+      // Agrupar por módulo
+      const byModule: Record<string, Row[]> = {};
+      allRows.forEach(row => {
+        const mod = row.module || "Sin módulo";
+        if (!byModule[mod]) byModule[mod] = [];
+        byModule[mod].push(row);
+      });
+
+      let n = 1;
+      Object.entries(byModule).forEach(([mod, rows]) => {
+        // Fila de módulo
+        wsData.push([`MÓDULO: ${mod.toUpperCase()}`]);
+        rows.forEach(row => {
+          const estado = row.status === "puntual" ? "P" : row.status === "tarde" ? "T" : "F";
+          const just = row.justification
+            ? `${row.justification.status?.toUpperCase()} — ${row.justification.reason}`
+            : "—";
+          wsData.push([
+            n++,
+            row.volunteer,
+            row.dni || "—",
+            row.module,
+            row.sede,
+            row.session,
+            row.sessionDate,
+            estado,
+            just,
+            row.registeredBy || "—",
+          ]);
+        });
+        wsData.push([]); // espacio entre módulos
+      });
+
+      const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+      // Anchos de columna
+      ws["!cols"] = [
+        { wch: 5 }, { wch: 30 }, { wch: 12 }, { wch: 20 },
+        { wch: 22 }, { wch: 25 }, { wch: 14 }, { wch: 8 },
+        { wch: 35 }, { wch: 20 },
+      ];
+
       XLSX.utils.book_append_sheet(wb, ws, "Asistencia");
+
+      // Hoja resumen
+      const resumen: any[][] = [];
+      resumen.push(["RESUMEN POR MÓDULO"]);
+      resumen.push([]);
+      resumen.push(["MÓDULO", "TOTAL", "PUNTUALES", "TARDANZAS", "FALTAS", "% ASISTENCIA"]);
+
+      Object.entries(byModule).forEach(([mod, rows]) => {
+        const total     = rows.length;
+        const puntuales = rows.filter(r => r.status === "puntual").length;
+        const tardanzas = rows.filter(r => r.status === "tarde").length;
+        const faltas    = rows.filter(r => r.status === "falta").length;
+        const pct       = total > 0 ? `${Math.round(((puntuales + tardanzas) / total) * 100)}%` : "0%";
+        resumen.push([mod, total, puntuales, tardanzas, faltas, pct]);
+      });
+
+      // Total general
+      resumen.push([]);
+      resumen.push([
+        "TOTAL GENERAL",
+        allRows.length,
+        allRows.filter(r => r.status === "puntual").length,
+        allRows.filter(r => r.status === "tarde").length,
+        allRows.filter(r => r.status === "falta").length,
+        `${Math.round(((allRows.filter(r => r.status === "puntual").length + allRows.filter(r => r.status === "tarde").length) / allRows.length) * 100)}%`,
+      ]);
+
+      const wsRes = XLSX.utils.aoa_to_sheet(resumen);
+      wsRes["!cols"] = [{ wch: 25 }, { wch: 8 }, { wch: 12 }, { wch: 12 }, { wch: 8 }, { wch: 14 }];
+      XLSX.utils.book_append_sheet(wb, wsRes, "Resumen");
+
       XLSX.writeFile(wb, `reporte-asistencia-${new Date().toLocaleDateString("es-PE").replace(/\//g, "-")}.xlsx`);
     } catch { alert("Error al exportar"); }
   };

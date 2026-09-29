@@ -324,7 +324,7 @@ function AdminDashboard() {
   const [stats,   setStats]   = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [alertas, setAlertas] = useState<any[]>([]);
-  const [sessionPeriod, setSessionPeriod] = useState("");
+  const [filterPeriod, setFilterPeriod] = useState("");
   const [periods,     setPeriods]     = useState<any[]>([]);
   const [alertPeriod, setAlertPeriod] = useState("");
 
@@ -332,32 +332,28 @@ function AdminDashboard() {
   user?.role === "super_admin" || user?.role === "registrador";
 
   useEffect(() => {
-    api.get(`/attendance/dashboard-stats${sessionPeriod ? `?periodId=${sessionPeriod}` : ''}`)
-      .then(res => setStats(res.data))
-      .catch(() => {})
-      .finally(() => setLoading(false));
-
+    setLoading(true);
     api.get("/periods").then(r => {
       setPeriods(r.data);
       const last = r.data.reduce((prev: any, curr: any) => curr.id > prev.id ? curr : prev, r.data[0]);
       if (last) {
         setAlertPeriod(String(last.id));
+        setFilterPeriod(String(last.id));
         fetchAlertas(String(last.id));
-        setSessionPeriod(String(last.id));
         fetchStats(String(last.id));
       }
     }).catch(() => {});
   }, []);
 
-  if (loading) return (
-    <div className="flex items-center justify-center min-h-screen" style={{ background: "#070d14" }}>
-      <div className="text-center space-y-4">
-        <div className="w-12 h-12 rounded-full mx-auto animate-spin"
-          style={{ border: `3px solid rgba(46,111,168,0.2)`, borderTopColor: BLUE }} />
-        <p style={{ color: "rgba(255,255,255,0.35)", fontSize: 13 }}>Cargando dashboard...</p>
+    if (loading) return (
+      <div className="flex items-center justify-center min-h-screen" style={{ background: "#070d14" }}>
+        <div className="text-center space-y-4">
+          <div className="w-12 h-12 rounded-full mx-auto animate-spin"
+            style={{ border: `3px solid rgba(46,111,168,0.2)`, borderTopColor: BLUE }} />
+          <p style={{ color: "rgba(255,255,255,0.35)", fontSize: 13 }}>Cargando dashboard...</p>
+        </div>
       </div>
-    </div>
-  );
+    );
 
   const statCards = [
     { label: "Voluntarios activos",     value: stats?.totals?.volunteers ?? 0, icon: Users,          color: BLUE_L,    link: "/admin/volunteers" },
@@ -395,6 +391,7 @@ function AdminDashboard() {
       const res = await api.get(`/attendance/dashboard-stats${periodId ? `?periodId=${periodId}` : ''}`);
       setStats(res.data);
     } catch {}
+    finally { setLoading(false); }
   }
 
   return (
@@ -420,9 +417,24 @@ function AdminDashboard() {
               {new Date().toLocaleDateString("es-PE", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
             </p>
           </div>
-          <div className="px-3 py-1.5 md:px-4 md:py-2 text-xs md:text-sm flex-shrink-0"
-            style={{ ...glass(), color: "rgba(255,255,255,0.50)" }}>
-            Sistema <span className="font-bold" style={{ color: ORANGE }}>Voluntades+</span>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <select value={filterPeriod} onChange={e => {
+              setFilterPeriod(e.target.value);
+              fetchStats(e.target.value);
+              fetchAlertas(e.target.value);
+              setAlertPeriod(e.target.value);
+            }}
+              className="text-xs px-3 py-2 rounded-xl outline-none font-semibold"
+              style={{ background: "rgba(46,111,168,0.15)", border: "1px solid rgba(46,111,168,0.40)", color: "#4a9fd4" }}>
+              <option value="" style={{ background: "#0d1424" }}>Todos los períodos</option>
+              {periods.map((p: any) => (
+                <option key={p.id} value={p.id} style={{ background: "#0d1424" }}>{p.name}</option>
+              ))}
+            </select>
+            <div className="px-3 py-1.5 md:px-4 md:py-2 text-xs md:text-sm"
+              style={{ ...glass(), color: "rgba(255,255,255,0.50)" }}>
+              Sistema <span className="font-bold" style={{ color: ORANGE }}>Voluntades+</span>
+            </div>
           </div>
         </div>
 
@@ -607,14 +619,6 @@ function AdminDashboard() {
                   style={{ color: "rgba(255,255,255,0.80)" }}>
                   <Activity size={15} color={BLUE_L} /> Últimas sesiones
                 </h2>
-                <select value={sessionPeriod} onChange={e => { setSessionPeriod(e.target.value); fetchStats(e.target.value); }}
-                  className="text-xs px-3 py-2 rounded-xl outline-none"
-                  style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.10)", color: "rgba(255,255,255,0.70)" }}>
-                  <option value="" style={{ background: "#0d1424" }}>Todos los períodos</option>
-                  {periods.map((p: any) => (
-                    <option key={p.id} value={p.id} style={{ background: "#0d1424" }}>{p.name}</option>
-                  ))}
-                </select>
               </div>
             {(stats?.lastSessions ?? []).length === 0
               ? <p className="text-center py-6 text-sm" style={{ color: "rgba(255,255,255,0.25)" }}>Sin sesiones</p>
@@ -731,10 +735,7 @@ function AdminDashboard() {
     </div>
   );
 }
-
-// ══════════════════════════════════════════════════════════════
 // ENTRY POINT
-// ══════════════════════════════════════════════════════════════
 export default function DashboardPage() {
   const { user } = useAuth();
   if (user?.role === "voluntario" || user?.role === "xpress") return <VolunteerDashboard />;

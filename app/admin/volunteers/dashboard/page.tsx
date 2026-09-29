@@ -8,7 +8,7 @@ import {
   ResponsiveContainer, Legend,
 } from "recharts";
 import {
-  CalendarDays, MapPin, Clock, TrendingUp,
+  CalendarDays, MapPin, Clock, TrendingUp, FileCheck, CheckCircle, AlertCircle, X,
 } from "lucide-react";
 import DownloadCards from "@/components/DownloadCard";
 
@@ -77,6 +77,13 @@ export default function VolunteerDashboard() {
   const [chartData,   setChartData]   = useState<any[]>([]);
   const [loading,     setLoading]     = useState(true);
 
+  const [anticipatedModal,   setAnticipatedModal]   = useState<any>(null);
+  const [anticipatedReason,  setAnticipatedReason]  = useState("");
+  const [anticipatedFile,    setAnticipatedFile]     = useState<File | null>(null);
+  const [anticipatedSending, setAnticipatedSending] = useState(false);
+  const [anticipatedType, setAnticipatedType] = useState<"falta" | "tardanza" | "">("");
+  const [anticipatedMsg,     setAnticipatedMsg]     = useState<{ type: "ok" | "err"; text: string } | null>(null);
+
   useEffect(() => {
     if (!user?.id) return;
     load();
@@ -89,7 +96,8 @@ export default function VolunteerDashboard() {
       const vol = volRes.data;
       setVolunteer(vol);
 
-      const sesRes = await api.get("/sessions/upcoming");
+      const sesRes = await api.get(`/sessions/upcoming${vol.module?.id ? `?moduleId=${vol.module.id}` : ''}`);
+      console.log('Sesiones próximas:', sesRes.data);
       setSessions(sesRes.data ?? []);
 
       const attRes = await api.get(`/attendance/volunteer/${vol.id}/by-month`);
@@ -104,6 +112,25 @@ export default function VolunteerDashboard() {
     } finally {
       setLoading(false);
     }
+  }
+
+  async function submitAnticipated() {
+    if (!anticipatedType) return setAnticipatedMsg({ type: "err", text: "Selecciona si es falta o tardanza" });
+    if (!anticipatedReason.trim()) return setAnticipatedMsg({ type: "err", text: "El motivo es obligatorio" });
+    setAnticipatedSending(true); setAnticipatedMsg(null);
+    try {
+      const form = new FormData();
+      form.append("sessionId", String(anticipatedModal.id));
+      form.append("reason", anticipatedReason);
+      form.append("anticipatedType", anticipatedType);
+      if (anticipatedFile) form.append("file", anticipatedFile);
+      await api.post("/justifications/anticipated", form, { headers: { "Content-Type": "multipart/form-data" } });
+      setAnticipatedMsg({ type: "ok", text: "Justificación anticipada enviada correctamente" });
+      setAnticipatedReason(""); setAnticipatedFile(null);
+      setTimeout(() => { setAnticipatedModal(null); setAnticipatedMsg(null); }, 1500);
+    } catch (e: any) {
+      setAnticipatedMsg({ type: "err", text: e?.response?.data?.message ?? "Error al enviar" });
+    } finally { setAnticipatedSending(false); }
   }
 
   const totalPuntuales = chartData.reduce((s, r) => s + r.puntuales, 0);
@@ -159,7 +186,6 @@ export default function VolunteerDashboard() {
               </span>
             )}
           </div>
-
           <div className="flex-1 min-w-0">
             <p className="text-xs font-semibold mb-1" style={{ color: "rgba(255,255,255,0.35)" }}>
               {getGreeting()}, 👋
@@ -286,12 +312,24 @@ export default function VolunteerDashboard() {
                       </div>
                     </div>
 
-                    {s.isActive && (
-                      <span className="flex-shrink-0 text-xs font-semibold px-2 py-0.5 rounded-full"
-                        style={{ background: "rgba(74,222,128,0.14)", color: "#4ade80" }}>
-                        En curso
-                      </span>
-                    )}
+                    <div className="flex flex-col gap-1 flex-shrink-0">
+                      {s.isActive && (
+                        <span className="text-xs font-semibold px-2 py-0.5 rounded-full"
+                          style={{ background: "rgba(74,222,128,0.14)", color: "#4ade80" }}>
+                          En curso
+                        </span>
+                      )}
+                      {(
+                        <button
+                          onClick={() => { setAnticipatedModal(s); setAnticipatedReason(""); setAnticipatedFile(null); setAnticipatedMsg(null); setAnticipatedType(""); }}
+                          className="text-xs font-semibold px-2.5 py-1.5 rounded-lg transition-all duration-200"
+                          style={{ background: "rgba(155,109,255,0.15)", color: "#9b6dff", border: "1px solid rgba(155,109,255,0.25)" }}
+                          onMouseEnter={e => (e.currentTarget.style.background = "rgba(155,109,255,0.25)")}
+                          onMouseLeave={e => (e.currentTarget.style.background = "rgba(155,109,255,0.15)")}>
+                          Justificar
+                        </button>
+                      )}
+                    </div>
                   </div>
                 );
               })}
@@ -343,6 +381,93 @@ export default function VolunteerDashboard() {
           )}
         </div>
       </div>
+      {anticipatedModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: "rgba(0,0,0,0.70)", backdropFilter: "blur(6px)" }}
+          onClick={() => setAnticipatedModal(null)}>
+          <div className="w-full max-w-md relative overflow-hidden"
+            style={{ ...glass("#9b6dff"), borderRadius: "20px" }}
+            onClick={e => e.stopPropagation()}>
+            <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: "linear-gradient(90deg,#9b6dff,transparent)" }} />
+            <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "rgba(155,109,255,0.15)" }}>
+                  <FileCheck size={15} color="#9b6dff" />
+                </div>
+                <span className="font-bold text-sm" style={{ color: "#f1f5f9" }}>Justificación anticipada</span>
+              </div>
+              <button onClick={() => setAnticipatedModal(null)}
+                className="w-8 h-8 rounded-lg flex items-center justify-center"
+                style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.50)" }}>
+                <X size={14} />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="p-3 rounded-xl text-xs space-y-1"
+                style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}>
+                <p style={{ color: "rgba(255,255,255,0.40)" }}>Sesión: <span style={{ color: "#f1f5f9" }}>{anticipatedModal.name}</span></p>
+                <p style={{ color: "rgba(255,255,255,0.40)" }}>Fecha: <span style={{ color: "#f1f5f9" }}>{anticipatedModal.date}</span></p>
+              </div>
+              {anticipatedMsg && (
+                <div className="flex items-center gap-2 text-xs px-3 py-2.5 rounded-xl"
+                  style={anticipatedMsg.type === "ok"
+                    ? { background: "rgba(74,222,128,0.12)", color: "#4ade80", border: "1px solid rgba(74,222,128,0.22)" }
+                    : { background: "rgba(248,113,113,0.12)", color: "#f87171", border: "1px solid rgba(248,113,113,0.22)" }}>
+                  {anticipatedMsg.type === "ok" ? <CheckCircle size={13} /> : <AlertCircle size={13} />}
+                  {anticipatedMsg.text}
+                </div>
+              )}
+              <div>
+                <div>
+                  <label className="text-xs font-semibold uppercase tracking-widest block mb-2" style={{ color: "rgba(255,255,255,0.38)" }}>
+                    Tipo de justificación *
+                  </label>
+                  <div className="flex gap-2">
+                    <button onClick={() => setAnticipatedType("falta")}
+                      className="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200"
+                      style={{
+                        background: anticipatedType === "falta" ? "rgba(248,113,113,0.15)" : "rgba(255,255,255,0.05)",
+                        color: anticipatedType === "falta" ? "#f87171" : "rgba(255,255,255,0.50)",
+                        border: anticipatedType === "falta" ? "1px solid rgba(248,113,113,0.30)" : "1px solid rgba(255,255,255,0.09)",
+                      }}>
+                      Falta
+                    </button>
+                    <button onClick={() => setAnticipatedType("tardanza")}
+                      className="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200"
+                      style={{
+                        background: anticipatedType === "tardanza" ? "rgba(250,204,21,0.15)" : "rgba(255,255,255,0.05)",
+                        color: anticipatedType === "tardanza" ? "#facc15" : "rgba(255,255,255,0.50)",
+                        border: anticipatedType === "tardanza" ? "1px solid rgba(250,204,21,0.30)" : "1px solid rgba(255,255,255,0.09)",
+                      }}>
+                      Tardanza
+                    </button>
+                  </div>
+                </div>
+                <textarea rows={3} placeholder="Explica por qué faltarás o llegarás tarde..."
+                  style={{ width: "100%", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.10)", borderRadius: "12px", padding: "10px 14px", color: "#f1f5f9", fontSize: "14px", outline: "none", resize: "none" }}
+                  value={anticipatedReason}
+                  onChange={e => setAnticipatedReason(e.target.value)} />
+              </div>
+              <div className="flex gap-2 pt-1">
+                <button onClick={() => setAnticipatedModal(null)}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
+                  style={{ background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.50)", border: "1px solid rgba(255,255,255,0.09)" }}>
+                  Cancelar
+                </button>
+                <button onClick={submitAnticipated} disabled={anticipatedSending}
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold"
+                  style={{ background: anticipatedSending ? "rgba(155,109,255,0.30)" : "linear-gradient(135deg,#9b6dff,#b48aff)", color: "#fff", cursor: anticipatedSending ? "not-allowed" : "pointer" }}>
+                  {anticipatedSending
+                    ? <div className="w-4 h-4 rounded-full animate-spin" style={{ border: "2px solid rgba(255,255,255,0.3)", borderTopColor: "#fff" }} />
+                    : <FileCheck size={14} />}
+                  {anticipatedSending ? "Enviando..." : "Enviar justificación"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
+    
   );
 }

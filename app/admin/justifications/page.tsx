@@ -197,7 +197,12 @@ export default function JustificationsPage() {
                       {j.volunteer?.user?.name ?? j.volunteer?.fullName ?? "—"}
                     </td>
                     <td className="px-4 py-3 text-xs" style={{ color: "rgba(255,255,255,0.55)" }}>
-                      {j.attendance?.session?.name ?? "—"}
+                      {j.attendance?.session?.name ?? j.session?.name ?? "—"}
+                      {j.isAnticipated && (
+                        <span className="ml-1 text-xs px-1.5 py-0.5 rounded-full" style={{ background: "rgba(155,109,255,0.15)", color: "#9b6dff" }}>
+                          Anticipada
+                        </span>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-xs" style={{ color: "rgba(255,255,255,0.50)" }}>
                       {j.volunteer?.module?.name ?? "—"}
@@ -209,6 +214,15 @@ export default function JustificationsPage() {
                           {attStatus === "FALTA" ? <XCircle size={10} /> : <Clock size={10} />}
                           {att.label}
                         </span>
+                        ) : j.isAnticipated ? (
+                          <span className="flex items-center gap-1 w-fit text-xs font-semibold px-2.5 py-1 rounded-full"
+                            style={{ 
+                              background: j.anticipatedType === "falta" ? "rgba(248,113,113,0.14)" : j.anticipatedType === "tardanza" ? "rgba(250,204,21,0.14)" : "rgba(155,109,255,0.14)",
+                              color: j.anticipatedType === "falta" ? "#f87171" : j.anticipatedType === "tardanza" ? "#facc15" : "#9b6dff"
+                            }}>
+                            {j.anticipatedType === "falta" ? <XCircle size={10} /> : j.anticipatedType === "tardanza" ? <Clock size={10} /> : null}
+                            {j.anticipatedType ? (j.anticipatedType === "falta" ? "Falta" : "Tardanza") : "Anticipada"}
+                          </span>
                       ) : <span className="text-xs" style={{ color: "rgba(255,255,255,0.25)" }}>—</span>}
                     </td>
                     <td className="px-4 py-3 max-w-[180px]">
@@ -301,9 +315,9 @@ export default function JustificationsPage() {
                 style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}>
                 {[
                   { label: "Voluntario", value: detail.volunteer?.user?.name ?? detail.volunteer?.fullName },
-                  { label: "Sesión",     value: detail.attendance?.session?.name },
-                  { label: "Módulo",     value: detail.volunteer?.module?.name },
-                  { label: "Tipo",       value: (detail.attendance?.status ?? "").toUpperCase() === "FALTA" ? "Falta" : "Tardanza" },
+                  { label: "Sesión", value: detail.attendance?.session?.name ?? detail.session?.name },
+                  { label: "Módulo", value: detail.volunteer?.module?.name },
+                  { label: "Tipo",   value: detail.isAnticipated ? "Anticipada" : (detail.attendance?.status ?? "").toUpperCase() === "FALTA" ? "Falta" : "Tardanza" },
                   { label: "Motivo",     value: detail.reason },
                 ].map(({ label, value }) => (
                   <div key={label} className="flex items-start gap-2 text-sm">
@@ -402,8 +416,8 @@ export default function JustificationsPage() {
                 style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}>
                 {[
                   { label: "Voluntario", value: selected.volunteer?.user?.name ?? selected.volunteer?.fullName },
-                  { label: "Sesión",     value: selected.attendance?.session?.name },
-                  { label: "Tipo",       value: selected.attendance?.status },
+                  { label: "Sesión", value: selected.attendance?.session?.name ?? selected.session?.name },
+                  { label: "Tipo",   value: selected.isAnticipated ? "Anticipada" : selected.attendance?.status },
                   { label: "Motivo",     value: selected.reason },
                 ].map(({ label, value }) => (
                   <div key={label} className="flex items-start gap-2 text-sm">

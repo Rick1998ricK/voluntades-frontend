@@ -168,7 +168,7 @@ export default function VolunteerDashboard() {
         }} />
 
         {/* ── DESCARGAS ── */}
-        <DownloadCards />
+        {/* <DownloadCards /> */}
 
         <div className="relative flex items-center gap-4">
           {/* Avatar */}

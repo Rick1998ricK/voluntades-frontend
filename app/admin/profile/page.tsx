@@ -347,11 +347,11 @@ export default function ProfilePage() {
             )}
           </div>
 
-          {volunteer && (
+          {/* {volunteer && (
             <div className="relative mt-6">
               <DownloadCards />
             </div>
-          )}
+          )} */}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">

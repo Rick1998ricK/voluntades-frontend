@@ -148,7 +148,7 @@ function VolunteerDashboard() {
         }} />
 
         {/* ── DESCARGAS ── */}
-        <DownloadCards />
+        {/* <DownloadCards /> */}
 
         <div className="relative flex items-center gap-4">
           <div className="w-14 h-14 md:w-16 md:h-16 rounded-2xl flex-shrink-0 flex items-center justify-center overflow-hidden"
@@ -439,7 +439,7 @@ function AdminDashboard() {
         </div>
 
         {/* ── DESCARGAS ── */}
-        <DownloadCards />
+        {/* <DownloadCards /> */}
 
         {/* STAT CARDS */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">

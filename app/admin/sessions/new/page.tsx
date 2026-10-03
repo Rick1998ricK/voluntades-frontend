@@ -78,7 +78,10 @@ interface Module { id: number; name: string; sede: { id: number; name: string } 
 export default function NewSessionPage() {
   const router = useRouter();
   const [modules, setModules] = useState<Module[]>([]);
-  const [mode, setMode] = useState<"single" | "multiple" | "all">("single");
+  const [mode, setMode] = useState<"single" | "multiple" | "all" | "allVolunteers">("single");
+  const [positions, setPositions] = useState<any[]>([]);
+  const [selectedPositionIds, setSelectedPositionIds] = useState<number[]>([]);
+  const [allPositions, setAllPositions] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
     name: "", description: "", date: "",
@@ -86,7 +89,10 @@ export default function NewSessionPage() {
     moduleId: "", moduleIds: [] as number[],
   });
 
-  useEffect(() => { api.get("/modules").then(res => setModules(res.data)); }, []);
+  useEffect(() => {
+    api.get("/modules").then(res => setModules(res.data));
+    api.get("/positions").then(res => setPositions(res.data.filter((p: any) => p.isActive)));
+  }, []);
 
   const toggleModule = (id: number) =>
     setForm(prev => ({
@@ -111,6 +117,12 @@ export default function NewSessionPage() {
     try {
       const payload: any = { name: form.name, description: form.description, date: form.date, startTime: form.startTime, toleranceTime: form.toleranceTime, endTime: form.endTime };
       if (mode === "all")      payload.allModules = true;
+      if (mode === "allVolunteers") payload.allVolunteers = true;
+      if (allPositions) {
+        payload.allPositions = true;
+      } else if (selectedPositionIds.length > 0) {
+        payload.positionIds = selectedPositionIds;
+      }
       if (mode === "single")   payload.moduleId   = Number(form.moduleId);
       if (mode === "multiple") payload.moduleIds  = form.moduleIds;
       await api.post("/sessions", payload);
@@ -198,7 +210,9 @@ export default function NewSessionPage() {
           <div>
             <Label icon={<Layers size={11} />} required>Aplicar a</Label>
             <div className="flex gap-2">
-              {[{ value: "single", label: "Un módulo" }, { value: "multiple", label: "Varios módulos" }, { value: "all", label: "Todos" }].map(opt => (
+              {[{ value: "single", label: "Un módulo" }, { value: "multiple", label: "Varios módulos" }, 
+                { value: "all", label: "Todos los módulos" },
+                { value: "allVolunteers", label: "Todos (con gestión)" }].map(opt => (
                 <button key={opt.value} type="button" onClick={() => setMode(opt.value as any)}
                   className="px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-200"
                   style={{
@@ -244,7 +258,78 @@ export default function NewSessionPage() {
                 La sesión se aplicará a todos los módulos ({modules.length} módulos)
               </p>
             )}
+            {mode === "allVolunteers" && (
+              <p className="mt-3 text-sm p-3 rounded-xl" style={{ background: "rgba(155,109,255,0.10)", color: "rgba(255,255,255,0.60)", border: "1px solid rgba(155,109,255,0.20)" }}>
+                La sesión se aplicará a todos los voluntarios activos incluyendo gestión sin módulo.
+              </p>
+            )}
           </div>
+          
+          {/* GESTIÓN */}
+          {mode !== "allVolunteers" && (
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <Label icon={<Layers size={11} />}>Cargos de gestión <span style={{ color: "rgba(255,255,255,0.25)", fontSize: 10 }}>(opcional)</span></Label>
+              <button type="button"
+                onClick={() => { setAllPositions(false); setSelectedPositionIds([]); }}
+                className="text-xs px-2 py-1 rounded-lg"
+                style={{ background: "rgba(248,113,113,0.10)", color: "#f87171", border: "1px solid rgba(248,113,113,0.20)" }}>
+                Limpiar
+              </button>
+            </div>
+            <div className="rounded-xl overflow-hidden" style={{ border: "1px solid rgba(255,255,255,0.07)" }}>
+              {/* Botón seleccionar todos */}
+              <div className="flex items-center justify-between px-3 py-2"
+                style={{ background: "rgba(155,109,255,0.08)", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+                <span className="text-xs font-semibold" style={{ color: "#9b6dff" }}>
+                  {allPositions ? `Todos seleccionados (${positions.length})` : `${selectedPositionIds.length} seleccionado(s)`}
+                </span>
+                <button type="button"
+                  onClick={() => { setAllPositions(!allPositions); setSelectedPositionIds([]); }}
+                  className="text-xs font-semibold px-2.5 py-1 rounded-lg transition-all duration-200"
+                  style={{
+                    background: allPositions ? "rgba(155,109,255,0.25)" : "rgba(155,109,255,0.12)",
+                    color: "#9b6dff",
+                    border: "1px solid rgba(155,109,255,0.30)",
+                  }}>
+                  {allPositions ? "Deseleccionar todos" : "Seleccionar todos"}
+                </button>
+              </div>
+              {/* Lista de cargos */}
+              <div className="max-h-48 overflow-y-auto space-y-0.5 p-2"
+                style={{ background: "rgba(255,255,255,0.02)" }}>
+                {positions.map((p: any) => {
+                  const selected = allPositions || selectedPositionIds.includes(p.id);
+                  return (
+                    <label key={p.id} className="flex items-center gap-2.5 p-2 rounded-lg cursor-pointer transition-all duration-150"
+                      style={{ background: selected ? "rgba(155,109,255,0.10)" : "transparent" }}
+                      onMouseEnter={e => { if (!selected) e.currentTarget.style.background = "rgba(255,255,255,0.04)"; }}
+                      onMouseLeave={e => { if (!selected) e.currentTarget.style.background = "transparent"; }}>
+                      {selected
+                        ? <CheckSquare size={14} color="#9b6dff" />
+                        : <Square size={14} color="rgba(255,255,255,0.30)" />}
+                      <span className="text-sm flex-1" style={{ color: selected ? "#f1f5f9" : "rgba(255,255,255,0.60)" }}>
+                        {p.name}
+                      </span>
+                      <input type="checkbox" className="sr-only"
+                        checked={selected}
+                        onChange={() => {
+                          if (allPositions) {
+                            setAllPositions(false);
+                            setSelectedPositionIds(positions.filter((pos: any) => pos.id !== p.id).map((pos: any) => pos.id));
+                          } else {
+                            setSelectedPositionIds(prev =>
+                              prev.includes(p.id) ? prev.filter(id => id !== p.id) : [...prev, p.id]
+                            );
+                          }
+                        }} />
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+          )}
 
           {/* Botones */}
           <div className="flex gap-3 pt-1">

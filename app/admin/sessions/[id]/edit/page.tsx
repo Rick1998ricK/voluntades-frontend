@@ -64,7 +64,10 @@ export default function EditSessionPage() {
   const id = params.id as string;
 
   const [modules, setModules] = useState<Module[]>([]);
-  const [mode, setMode] = useState<"single" | "multiple" | "all">("single");
+  const [positions, setPositions] = useState<any[]>([]);
+  const [mode, setMode] = useState<"single" | "multiple" | "all" | "allVolunteers">("single");
+  const [selectedPositionIds, setSelectedPositionIds] = useState<number[]>([]);
+  const [allPositions, setAllPositions] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [sessionName, setSessionName] = useState("");
@@ -75,10 +78,21 @@ export default function EditSessionPage() {
   });
 
   useEffect(() => {
-    Promise.all([api.get(`/sessions/${id}`), api.get("/modules")])
-      .then(([sessionRes, modulesRes]) => {
+    Promise.all([api.get(`/sessions/${id}`), api.get("/modules"), api.get("/positions")])
+      .then(([sessionRes, modulesRes, positionsRes]) => {
         const s = sessionRes.data;
         setModules(modulesRes.data);
+        setPositions(positionsRes.data.filter((p: any) => p.isActive));
+        
+        // Precargar posiciones seleccionadas
+        if (s.positions?.length > 0) {
+          const allActive = positionsRes.data.filter((p: any) => p.isActive);
+          if (s.positions.length === allActive.length) {
+            setAllPositions(true);
+          } else {
+            setSelectedPositionIds(s.positions.map((p: any) => p.id));
+          }
+        }
         setSessionName(s.name ?? "");
         const mods = s.modules ?? [];
         const totalModules = modulesRes.data.length;
@@ -106,10 +120,20 @@ export default function EditSessionPage() {
     e.preventDefault();
     try {
       setSaving(true);
-      const payload: any = { name: form.name, description: form.description, date: form.date, startTime: form.startTime, toleranceTime: form.toleranceTime, endTime: form.endTime };
-      if (mode === "all")      payload.allModules = true;
-      else if (mode === "single")   payload.moduleId   = Number(form.moduleId);
-      else if (mode === "multiple") payload.moduleIds  = form.moduleIds;
+      const payload: any = {
+        name: form.name,
+        description: form.description,
+        date: form.date,
+        startTime: form.startTime,
+        toleranceTime: form.toleranceTime,
+        endTime: form.endTime,
+      };
+      if (mode === "all")           payload.allModules    = true;
+      if (mode === "allVolunteers") payload.allVolunteers = true;
+      if (mode === "single")        payload.moduleId      = Number(form.moduleId);
+      if (mode === "multiple")      payload.moduleIds     = form.moduleIds;
+      if (allPositions)             payload.allPositions  = true;
+      else if (selectedPositionIds.length > 0) payload.positionIds = selectedPositionIds;
       await api.patch(`/sessions/${id}`, payload);
       router.push(`/admin/sessions/${id}`);
     } catch { alert("Error al actualizar la sesión"); }
@@ -203,7 +227,9 @@ export default function EditSessionPage() {
           <div>
             <Label icon={<Layers size={11} />} required>Aplicar a</Label>
             <div className="flex gap-2">
-              {[{ value: "single", label: "Un módulo" }, { value: "multiple", label: "Varios módulos" }, { value: "all", label: "Todos" }].map(opt => (
+              {[{ value: "single", label: "Un módulo" }, { value: "multiple", label: "Varios módulos" }, 
+              { value: "all", label: "Todos los módulos" },
+              { value: "allVolunteers", label: "Todos (con gestión)" }]                  .map(opt => (
                 <button key={opt.value} type="button" onClick={() => setMode(opt.value as any)}
                   className="px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-200"
                   style={{
@@ -249,7 +275,61 @@ export default function EditSessionPage() {
                 La sesión se aplicará a todos los módulos ({modules.length} módulos)
               </p>
             )}
+            {mode === "allVolunteers" && (
+              <p className="mt-3 text-sm p-3 rounded-xl" style={{ background: "rgba(155,109,255,0.10)", color: "rgba(255,255,255,0.60)", border: "1px solid rgba(155,109,255,0.20)" }}>
+                La sesión se aplicará a todos los voluntarios activos incluyendo gestión sin módulo.
+              </p>
+            )}
           </div>
+          
+          {mode !== "allVolunteers" && (
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <Label icon={<Layers size={11} />}>Cargos de gestión <span style={{ color: "rgba(255,255,255,0.25)", fontSize: 10 }}>(opcional)</span></Label>
+              <button type="button"
+                onClick={() => { setAllPositions(false); setSelectedPositionIds([]); }}
+                className="text-xs px-2 py-1 rounded-lg"
+                style={{ background: "rgba(248,113,113,0.10)", color: "#f87171", border: "1px solid rgba(248,113,113,0.20)" }}>
+                Limpiar
+              </button>
+            </div>
+            <div className="rounded-xl overflow-hidden" style={{ border: "1px solid rgba(255,255,255,0.07)" }}>
+              <div className="flex items-center justify-between px-3 py-2"
+                style={{ background: "rgba(155,109,255,0.08)", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+                <span className="text-xs font-semibold" style={{ color: "#9b6dff" }}>
+                  {allPositions ? `Todos seleccionados (${positions.length})` : `${selectedPositionIds.length} seleccionado(s)`}
+                </span>
+                <button type="button"
+                  onClick={() => { setAllPositions(!allPositions); setSelectedPositionIds([]); }}
+                  className="text-xs font-semibold px-2.5 py-1 rounded-lg"
+                  style={{ background: allPositions ? "rgba(155,109,255,0.25)" : "rgba(155,109,255,0.12)", color: "#9b6dff", border: "1px solid rgba(155,109,255,0.30)" }}>
+                  {allPositions ? "Deseleccionar todos" : "Seleccionar todos"}
+                </button>
+              </div>
+              <div className="max-h-48 overflow-y-auto space-y-0.5 p-2" style={{ background: "rgba(255,255,255,0.02)" }}>
+                {positions.map((p: any) => {
+                  const selected = allPositions || selectedPositionIds.includes(p.id);
+                  return (
+                    <label key={p.id} className="flex items-center gap-2.5 p-2 rounded-lg cursor-pointer"
+                      style={{ background: selected ? "rgba(155,109,255,0.10)" : "transparent" }}>
+                      {selected ? <CheckSquare size={14} color="#9b6dff" /> : <Square size={14} color="rgba(255,255,255,0.30)" />}
+                      <span className="text-sm flex-1" style={{ color: selected ? "#f1f5f9" : "rgba(255,255,255,0.60)" }}>{p.name}</span>
+                      <input type="checkbox" className="sr-only" checked={selected}
+                        onChange={() => {
+                          if (allPositions) {
+                            setAllPositions(false);
+                            setSelectedPositionIds(positions.filter((pos: any) => pos.id !== p.id).map((pos: any) => pos.id));
+                          } else {
+                            setSelectedPositionIds(prev => prev.includes(p.id) ? prev.filter(id => id !== p.id) : [...prev, p.id]);
+                          }
+                        }} />
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
 
           {/* Botones */}
           <div className="flex gap-3 pt-1">

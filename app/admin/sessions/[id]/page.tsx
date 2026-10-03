@@ -227,7 +227,9 @@ export default function SessionDetailPage() {
           <div>
             <p className="text-xs mb-1" style={{ color: "rgba(255,255,255,0.35)" }}>Módulos</p>
             <div className="flex flex-wrap gap-1">
-              {session?.modules?.length === 0
+              {session?.allVolunteers
+                ? <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: "rgba(155,109,255,0.15)", color: "#9b6dff" }}>Todos los voluntarios</span>
+                : session?.modules?.length === 0
                 ? <span className="text-xs" style={{ color: "rgba(255,255,255,0.25)" }}>—</span>
                 : session?.modules?.map((m: any) => (
                     <span key={m.id} className="text-xs font-semibold px-2 py-0.5 rounded-full"
@@ -237,6 +239,20 @@ export default function SessionDetailPage() {
                   ))}
             </div>
           </div>
+
+          {session?.positions?.length > 0 && (
+            <div>
+              <p className="text-xs mb-1" style={{ color: "rgba(255,255,255,0.35)" }}>Gestión participante</p>
+              <div className="flex flex-wrap gap-1">
+                {session.positions.map((p: any) => (
+                  <span key={p.id} className="text-xs font-semibold px-2 py-0.5 rounded-full"
+                    style={{ background: "rgba(155,109,255,0.15)", color: "#9b6dff" }}>
+                    {p.name}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

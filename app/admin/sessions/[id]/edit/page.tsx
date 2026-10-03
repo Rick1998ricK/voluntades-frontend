@@ -96,8 +96,9 @@ export default function EditSessionPage() {
         setSessionName(s.name ?? "");
         const mods = s.modules ?? [];
         const totalModules = modulesRes.data.length;
-        let detectedMode: "single" | "multiple" | "all" = "single";
-        if (mods.length === totalModules) detectedMode = "all";
+        let detectedMode: "single" | "multiple" | "all" | "allVolunteers" = "single";
+        if (s.allVolunteers)             detectedMode = "allVolunteers";
+        else if (mods.length === totalModules) detectedMode = "all";
         else if (mods.length > 1)        detectedMode = "multiple";
         setMode(detectedMode);
         setForm({

@@ -82,6 +82,9 @@ export default function EditSessionPage() {
       .then(([sessionRes, modulesRes, positionsRes]) => {
         const s = sessionRes.data;
         setModules(modulesRes.data);
+        console.log('Sesión cargada:', s);
+        console.log('Posiciones:', s.positions);
+        console.log('allVolunteers:', s.allVolunteers);
         setPositions(positionsRes.data.filter((p: any) => p.isActive));
         
         // Precargar posiciones seleccionadas
@@ -109,7 +112,7 @@ export default function EditSessionPage() {
           moduleIds: mods.length > 1 ? mods.map((m: any) => m.id) : [],
         });
       }).finally(() => setLoading(false));
-  }, [id]);
+    }, [id]);
 
   const toggleModule = (modId: number) =>
     setForm(prev => ({
@@ -131,10 +134,15 @@ export default function EditSessionPage() {
       };
       if (mode === "all")           payload.allModules    = true;
       if (mode === "allVolunteers") payload.allVolunteers = true;
+      else                          payload.allVolunteers = false;
       if (mode === "single")        payload.moduleId      = Number(form.moduleId);
       if (mode === "multiple")      payload.moduleIds     = form.moduleIds;
-      if (allPositions)             payload.allPositions  = true;
-      else if (selectedPositionIds.length > 0) payload.positionIds = selectedPositionIds;
+      if (mode !== "allVolunteers") {
+        if (allPositions)             payload.allPositions  = true;
+        else if (selectedPositionIds.length > 0) payload.positionIds = selectedPositionIds;
+        else payload.positionIds = [];
+      }
+      console.log('Payload enviado:', payload);
       await api.patch(`/sessions/${id}`, payload);
       router.push(`/admin/sessions/${id}`);
     } catch { alert("Error al actualizar la sesión"); }

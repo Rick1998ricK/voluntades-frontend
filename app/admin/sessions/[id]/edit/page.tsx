@@ -65,7 +65,7 @@ export default function EditSessionPage() {
 
   const [modules, setModules] = useState<Module[]>([]);
   const [positions, setPositions] = useState<any[]>([]);
-  const [mode, setMode] = useState<"single" | "multiple" | "all" | "allVolunteers">("single");
+  const [mode, setMode] = useState<"single" | "multiple" | "all" | "allVolunteers" | "management">("single");
   const [selectedPositionIds, setSelectedPositionIds] = useState<number[]>([]);
   const [allPositions, setAllPositions] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -99,8 +99,9 @@ export default function EditSessionPage() {
         setSessionName(s.name ?? "");
         const mods = s.modules ?? [];
         const totalModules = modulesRes.data.length;
-        let detectedMode: "single" | "multiple" | "all" | "allVolunteers" = "single";
-        if (s.allVolunteers)             detectedMode = "allVolunteers";
+        let detectedMode: "single" | "multiple" | "all" | "allVolunteers" | "management" = "single";
+        if (s.managementOnly)            detectedMode = "management";
+        else if (s.allVolunteers)        detectedMode = "allVolunteers";
         else if (mods.length === totalModules) detectedMode = "all";
         else if (mods.length > 1)        detectedMode = "multiple";
         setMode(detectedMode);
@@ -133,8 +134,9 @@ export default function EditSessionPage() {
         endTime: form.endTime,
       };
       if (mode === "all")           payload.allModules    = true;
-      if (mode === "allVolunteers") payload.allVolunteers = true;
-      else                          payload.allVolunteers = false;
+      if (mode === "allVolunteers") { payload.allVolunteers = true; payload.managementOnly = false; }
+      else if (mode === "management") { payload.managementOnly = true; payload.allVolunteers = false; }
+      else { payload.allVolunteers = false; payload.managementOnly = false; }
       if (mode === "single")        payload.moduleId      = Number(form.moduleId);
       if (mode === "multiple")      payload.moduleIds     = form.moduleIds;
       if (mode !== "allVolunteers") {
@@ -238,7 +240,8 @@ export default function EditSessionPage() {
             <div className="flex gap-2">
               {[{ value: "single", label: "Un módulo" }, { value: "multiple", label: "Varios módulos" }, 
               { value: "all", label: "Todos los módulos" },
-              { value: "allVolunteers", label: "Todos (con gestión)" }]                  .map(opt => (
+              { value: "allVolunteers", label: "Todos (con gestión)" },
+              { value: "management", label: "Solo gestión" }]                  .map(opt => (
                 <button key={opt.value} type="button" onClick={() => setMode(opt.value as any)}
                   className="px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-200"
                   style={{
@@ -287,6 +290,11 @@ export default function EditSessionPage() {
             {mode === "allVolunteers" && (
               <p className="mt-3 text-sm p-3 rounded-xl" style={{ background: "rgba(155,109,255,0.10)", color: "rgba(255,255,255,0.60)", border: "1px solid rgba(155,109,255,0.20)" }}>
                 La sesión se aplicará a todos los voluntarios activos incluyendo gestión sin módulo.
+              </p>
+            )}
+            {mode === "management" && (
+              <p className="mt-3 text-sm p-3 rounded-xl" style={{ background: "rgba(155,109,255,0.10)", color: "rgba(255,255,255,0.60)", border: "1px solid rgba(155,109,255,0.20)" }}>
+                La sesión aplicará solo a los equipos de gestión seleccionados.
               </p>
             )}
           </div>

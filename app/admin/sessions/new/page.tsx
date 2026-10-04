@@ -78,7 +78,7 @@ interface Module { id: number; name: string; sede: { id: number; name: string } 
 export default function NewSessionPage() {
   const router = useRouter();
   const [modules, setModules] = useState<Module[]>([]);
-  const [mode, setMode] = useState<"single" | "multiple" | "all" | "allVolunteers">("single");
+  const [mode, setMode] = useState<"single" | "multiple" | "all" | "allVolunteers" | "management">("single");
   const [positions, setPositions] = useState<any[]>([]);
   const [selectedPositionIds, setSelectedPositionIds] = useState<number[]>([]);
   const [allPositions, setAllPositions] = useState(false);
@@ -118,6 +118,12 @@ export default function NewSessionPage() {
       const payload: any = { name: form.name, description: form.description, date: form.date, startTime: form.startTime, toleranceTime: form.toleranceTime, endTime: form.endTime };
       if (mode === "all")      payload.allModules = true;
       if (mode === "allVolunteers") payload.allVolunteers = true;
+      if (mode === "management") {
+        payload.managementOnly = true;
+        if (!allPositions && selectedPositionIds.length === 0) {
+          return alert("Selecciona al menos un cargo de gestión");
+        }
+      }
       if (allPositions) {
         payload.allPositions = true;
       } else if (selectedPositionIds.length > 0) {
@@ -212,7 +218,8 @@ export default function NewSessionPage() {
             <div className="flex gap-2">
               {[{ value: "single", label: "Un módulo" }, { value: "multiple", label: "Varios módulos" }, 
                 { value: "all", label: "Todos los módulos" },
-                { value: "allVolunteers", label: "Todos (con gestión)" }].map(opt => (
+                { value: "allVolunteers", label: "Todos (con gestión)" },
+                { value: "management", label: "Solo gestión" }].map(opt => (
                 <button key={opt.value} type="button" onClick={() => setMode(opt.value as any)}
                   className="px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-200"
                   style={{
@@ -263,10 +270,15 @@ export default function NewSessionPage() {
                 La sesión se aplicará a todos los voluntarios activos incluyendo gestión sin módulo.
               </p>
             )}
+            {mode === "management" && (
+              <p className="mt-3 text-sm p-3 rounded-xl" style={{ background: "rgba(155,109,255,0.10)", color: "rgba(255,255,255,0.60)", border: "1px solid rgba(155,109,255,0.20)" }}>
+                La sesión aplicará solo a los equipos de gestión seleccionados.
+              </p>
+            )}
           </div>
           
           {/* GESTIÓN */}
-          {mode !== "allVolunteers" && (
+          {(mode !== "allVolunteers") && (
           <div>
             <div className="flex items-center justify-between mb-3">
               <Label icon={<Layers size={11} />}>Cargos de gestión <span style={{ color: "rgba(255,255,255,0.25)", fontSize: 10 }}>(opcional)</span></Label>

@@ -6,7 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import {
   QrCode, Download, Key, CheckCircle, AlertCircle, User, Phone,
   MapPin, Droplets, BookOpen, Calendar, ClipboardList, FileCheck,
-  Clock, XCircle, X, Shield, Activity, Bell,
+  Clock, XCircle, X, Shield, Activity, Bell, Eye,
 } from "lucide-react";
 // @ts-ignore
 import QRCode from "qrcode";
@@ -102,6 +102,7 @@ export default function ProfilePage() {
   const anticipatedFileRef = useRef<HTMLInputElement>(null);
 
   const [justModal, setJustModal] = useState<any>(null);
+  const [detailModal, setDetailModal] = useState<any>(null);
   const [reason,    setReason]    = useState("");
   const [file,      setFile]      = useState<File | null>(null);
   const [sending,   setSending]   = useState(false);
@@ -611,7 +612,7 @@ export default function ProfilePage() {
                       <table className="w-full text-sm min-w-[500px]">
                         <thead>
                           <tr style={{ background: "rgba(255,255,255,0.03)", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
-                            {["Sesión", "Motivo", "Estado", "Nota", "Fecha"].map(h => (
+                            {["Sesión", "Motivo", "Estado", "Nota", "Fecha", ""].map(h => (
                               <th key={h} className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-widest"
                                 style={{ color: "rgba(255,255,255,0.30)" }}>{h}</th>
                             ))}
@@ -646,6 +647,13 @@ export default function ProfilePage() {
                                 <td className="px-4 py-3 text-xs whitespace-nowrap" style={{ color: "rgba(255,255,255,0.40)" }}>
                                   {new Date(j.createdAt).toLocaleDateString("es-PE")}
                                 </td>
+                                <td className="px-4 py-3">
+                                <button onClick={() => setDetailModal(j)}
+                                  className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-lg"
+                                  style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.55)", border: "1px solid rgba(255,255,255,0.10)" }}>
+                                  <Eye size={11} /> Ver
+                                </button>
+                              </td>
                               </tr>
                             );
                           })}
@@ -872,8 +880,170 @@ export default function ProfilePage() {
               </div>
             </div>
           </div>
+          {detailModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(8px)" }}
+            onClick={() => setDetailModal(null)}>
+            <div className="w-full max-w-md relative overflow-hidden"
+              style={{ ...glass(BLUE_L), borderRadius: "20px" }}
+              onClick={e => e.stopPropagation()}>
+              <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: `linear-gradient(90deg,${BLUE_L},transparent)` }} />
+              <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "rgba(74,144,196,0.15)" }}>
+                    <FileCheck size={15} color={BLUE_L} />
+                  </div>
+                  <span className="font-bold text-sm" style={{ color: "#f1f5f9" }}>Detalle de justificación</span>
+                </div>
+                <button onClick={() => setDetailModal(null)}
+                  className="w-8 h-8 rounded-lg flex items-center justify-center"
+                  style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.50)" }}>
+                  <X size={14} />
+                </button>
+              </div>
+              <div className="p-6 space-y-4">
+                <div className="p-4 rounded-xl space-y-3" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}>
+                  {[
+                    { label: "Sesión",  value: detailModal.attendance?.session?.name ?? detailModal.session?.name },
+                    { label: "Motivo",  value: detailModal.reason },
+                    { label: "Tipo",    value: detailModal.isAnticipated ? `Anticipada (${detailModal.anticipatedType ?? "—"})` : "Normal" },
+                  ].map(({ label, value }) => (
+                    <div key={label} className="flex items-start gap-2 text-sm">
+                      <span className="text-xs mt-0.5 min-w-[70px] flex-shrink-0" style={{ color: "rgba(255,255,255,0.35)" }}>{label}:</span>
+                      <span style={{ color: "#f1f5f9" }}>{value ?? "—"}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {(() => {
+                  const cfg =
+                    detailModal.status === "aprobado"  ? { bg: "rgba(74,222,128,0.12)",  color: "#4ade80",  label: "Aprobado"  } :
+                    detailModal.status === "rechazado" ? { bg: "rgba(248,113,113,0.12)", color: "#f87171",  label: "Rechazado" } :
+                                                        { bg: "rgba(250,204,21,0.12)",  color: "#facc15",  label: "Pendiente" };
+                  return (
+                    <div className="p-4 rounded-xl space-y-3" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs" style={{ color: "rgba(255,255,255,0.35)" }}>Estado:</span>
+                        <span className="text-xs font-semibold px-2.5 py-1 rounded-full"
+                          style={{ background: cfg.bg, color: cfg.color }}>{cfg.label}</span>
+                      </div>
+                      {detailModal.status !== "pendiente" && (
+                        <>
+                          <div className="flex items-start gap-2 text-sm">
+                            <span className="text-xs mt-0.5 min-w-[90px] flex-shrink-0" style={{ color: "rgba(255,255,255,0.35)" }}>Revisado por:</span>
+                            <span style={{ color: "#f1f5f9" }}>{detailModal.reviewedBy?.name ?? "—"}</span>
+                          </div>
+                          {detailModal.reviewNote && (
+                            <div className="flex items-start gap-2 text-sm">
+                              <span className="text-xs mt-0.5 min-w-[90px] flex-shrink-0" style={{ color: "rgba(255,255,255,0.35)" }}>Nota completa:</span>
+                              <span style={{ color: "rgba(255,255,255,0.70)" }}>{detailModal.reviewNote}</span>
+                            </div>
+                          )}
+                          {detailModal.reviewedAt && (
+                            <div className="flex items-start gap-2 text-sm">
+                              <span className="text-xs mt-0.5 min-w-[90px] flex-shrink-0" style={{ color: "rgba(255,255,255,0.35)" }}>Fecha revisión:</span>
+                              <span style={{ color: "rgba(255,255,255,0.50)" }}>{new Date(detailModal.reviewedAt).toLocaleDateString("es-PE")}</span>
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  );
+                })()}
+
+                <button onClick={() => setDetailModal(null)}
+                  className="w-full py-2.5 rounded-xl text-sm font-semibold"
+                  style={{ background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.50)", border: "1px solid rgba(255,255,255,0.09)" }}>
+                  Cerrar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
         </div>
       )}
+          {detailModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(8px)" }}
+            onClick={() => setDetailModal(null)}>
+            <div className="w-full max-w-md relative overflow-hidden"
+              style={{ ...glass(BLUE_L), borderRadius: "20px" }}
+              onClick={e => e.stopPropagation()}>
+              <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: `linear-gradient(90deg,${BLUE_L},transparent)` }} />
+              <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "rgba(74,144,196,0.15)" }}>
+                    <FileCheck size={15} color={BLUE_L} />
+                  </div>
+                  <span className="font-bold text-sm" style={{ color: "#f1f5f9" }}>Detalle de justificación</span>
+                </div>
+                <button onClick={() => setDetailModal(null)}
+                  className="w-8 h-8 rounded-lg flex items-center justify-center"
+                  style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.50)" }}>
+                  <X size={14} />
+                </button>
+              </div>
+              <div className="p-6 space-y-4">
+                <div className="p-4 rounded-xl space-y-3" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}>
+                  {[
+                    { label: "Sesión",  value: detailModal.attendance?.session?.name ?? detailModal.session?.name },
+                    { label: "Motivo",  value: detailModal.reason },
+                    { label: "Tipo",    value: detailModal.isAnticipated ? `Anticipada (${detailModal.anticipatedType ?? "—"})` : "Normal" },
+                  ].map(({ label, value }) => (
+                    <div key={label} className="flex items-start gap-2 text-sm">
+                      <span className="text-xs mt-0.5 min-w-[70px] flex-shrink-0" style={{ color: "rgba(255,255,255,0.35)" }}>{label}:</span>
+                      <span style={{ color: "#f1f5f9" }}>{value ?? "—"}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {(() => {
+                  const cfg =
+                    detailModal.status === "aprobado"  ? { bg: "rgba(74,222,128,0.12)",  color: "#4ade80",  label: "Aprobado"  } :
+                    detailModal.status === "rechazado" ? { bg: "rgba(248,113,113,0.12)", color: "#f87171",  label: "Rechazado" } :
+                                                        { bg: "rgba(250,204,21,0.12)",  color: "#facc15",  label: "Pendiente" };
+                  return (
+                    <div className="p-4 rounded-xl space-y-3" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs" style={{ color: "rgba(255,255,255,0.35)" }}>Estado:</span>
+                        <span className="text-xs font-semibold px-2.5 py-1 rounded-full"
+                          style={{ background: cfg.bg, color: cfg.color }}>{cfg.label}</span>
+                      </div>
+                      {detailModal.status !== "pendiente" && (
+                        <>
+                          <div className="flex items-start gap-2 text-sm">
+                            <span className="text-xs mt-0.5 min-w-[90px] flex-shrink-0" style={{ color: "rgba(255,255,255,0.35)" }}>Revisado por:</span>
+                            <span style={{ color: "#f1f5f9" }}>{detailModal.reviewedBy?.name ?? "—"}</span>
+                          </div>
+                          {detailModal.reviewNote && (
+                            <div className="flex items-start gap-2 text-sm">
+                              <span className="text-xs mt-0.5 min-w-[90px] flex-shrink-0" style={{ color: "rgba(255,255,255,0.35)" }}>Nota completa:</span>
+                              <span className="block max-h-32 overflow-y-auto pr-1" style={{ color: "rgba(255,255,255,0.70)", lineHeight: "1.6", wordBreak: "break-word" }}>
+                              {detailModal.reviewNote}
+                            </span>
+                            </div>
+                          )}
+                          {detailModal.reviewedAt && (
+                            <div className="flex items-start gap-2 text-sm">
+                              <span className="text-xs mt-0.5 min-w-[90px] flex-shrink-0" style={{ color: "rgba(255,255,255,0.35)" }}>Fecha revisión:</span>
+                              <span style={{ color: "rgba(255,255,255,0.50)" }}>{new Date(detailModal.reviewedAt).toLocaleDateString("es-PE")}</span>
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  );
+                })()}
+
+                <button onClick={() => setDetailModal(null)}
+                  className="w-full py-2.5 rounded-xl text-sm font-semibold"
+                  style={{ background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.50)", border: "1px solid rgba(255,255,255,0.09)" }}>
+                  Cerrar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
     </div>
   );
 }

@@ -230,11 +230,12 @@ export default function JustificationsPage() {
                     </td>
                     <td className="px-4 py-3">
                       {j.fileUrl ? (
-                        <a href={j.fileUrl} target="_blank"
-                          className="flex items-center gap-1 text-xs font-medium transition-colors duration-200"
-                          style={{ color: BLUE_L }}
-                          onMouseEnter={e => (e.currentTarget.style.color = "#fff")}
-                          onMouseLeave={e => (e.currentTarget.style.color = BLUE_L)}>
+                        <a href={j.fileUrl.includes('/raw/upload/') 
+                          ? j.fileUrl.replace('/raw/upload/', '/raw/upload/fl_attachment/') 
+                          : j.fileUrl.replace('/upload/', '/upload/fl_attachment/')} 
+                          target="_blank"
+                          className="flex items-center gap-1 text-xs font-medium"
+                          style={{ color: BLUE_L }}>
                           <ExternalLink size={11} /> Ver archivo
                         </a>
                       ) : <span className="text-xs" style={{ color: "rgba(255,255,255,0.25)" }}>Sin archivo</span>}

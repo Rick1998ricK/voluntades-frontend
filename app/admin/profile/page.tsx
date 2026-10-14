@@ -182,7 +182,7 @@ export default function ProfilePage() {
   async function submitJustification() {
     if (!reason.trim()) return setJustMsg({ type: "err", text: "El motivo es obligatorio" });
     if (file) {
-      const allowed = ['application/pdf','application/msword','application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+      const allowed = ['application/pdf','application/msword','application/vnd.openxmlformats-officedocument.wordprocessingml.document','image/jpeg','image/jpg','image/png','image/webp','image/gif'];
       if (!allowed.includes(file.type)) return setJustMsg({ type: "err", text: "Solo PDF o Word (.pdf, .doc, .docx)" });
     }
     setSending(true); setJustMsg(null);
@@ -783,10 +783,10 @@ export default function ProfilePage() {
               </div>
               <div>
                 <Label>Archivo adjunto <span style={{ color: "rgba(255,255,255,0.25)", fontSize: 10, textTransform: "none" }}>(opcional)</span></Label>
-                <input ref={fileRef} type="file" accept=".pdf,.doc,.docx" className="hidden" onChange={e => setFile(e.target.files?.[0] ?? null)} />
+                <input ref={fileRef} type="file" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.webp,.gif" className="hidden" onChange={e => setFile(e.target.files?.[0] ?? null)} />
                 <button onClick={() => fileRef.current?.click()} className="w-full py-2.5 rounded-xl text-xs font-semibold"
                   style={{ background: "rgba(255,255,255,0.05)", color: file ? "#4ade80" : "rgba(255,255,255,0.45)", border: `1px solid ${file ? "rgba(74,222,128,0.30)" : "rgba(255,255,255,0.10)"}` }}>
-                  {file ? `📎 ${file.name}` : "Seleccionar archivo (PDF o Word)"}
+                  {file ? `📎 ${file.name}` : "Seleccionar archivo (PDF, Word o imagen · máx. 10MB)"}
                 </button>
               </div>
               <div className="flex gap-2 pt-1">
@@ -860,7 +860,7 @@ export default function ProfilePage() {
               </div>
               <div>
                 <Label>Archivo adjunto <span style={{ color: "rgba(255,255,255,0.25)", fontSize: 10, textTransform: "none" }}>(opcional)</span></Label>
-                <input ref={anticipatedFileRef} type="file" accept=".pdf,.doc,.docx" className="hidden" onChange={e => setAnticipatedFile(e.target.files?.[0] ?? null)} />
+                <input ref={anticipatedFileRef} type="file" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.webp,.gif" className="hidden" onChange={e => setAnticipatedFile(e.target.files?.[0] ?? null)} />
                 <button onClick={() => anticipatedFileRef.current?.click()} className="w-full py-2.5 rounded-xl text-xs font-semibold"
                   style={{ background: "rgba(255,255,255,0.05)", color: anticipatedFile ? "#4ade80" : "rgba(255,255,255,0.45)", border: `1px solid ${anticipatedFile ? "rgba(74,222,128,0.30)" : "rgba(255,255,255,0.10)"}` }}>
                   {anticipatedFile ? `📎 ${anticipatedFile.name}` : "Seleccionar archivo (PDF o Word)"}

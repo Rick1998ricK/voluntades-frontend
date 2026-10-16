@@ -132,7 +132,16 @@ export default function ProfilePage() {
       .finally(() => setAttLoading(false));
 
     api.get(`/attendance/volunteer/${volunteer.id}/alerts`).then(res => setMyAlerts(res.data)).catch(() => {});
-    api.get(`/sessions/upcoming${volunteer.module?.id ? `?moduleId=${volunteer.module.id}` : ''}`).then(res => setUpcomingSessions(res.data ?? [])).catch(() => {});
+    const params = new URLSearchParams();
+    if (volunteer.module?.id) params.append('moduleId', String(volunteer.module.id));
+    console.log('PARAMS - isManagement:', volunteer.isManagement, 'moduleId:', volunteer.module?.id);
+    console.log('volunteer.isManagement:', volunteer.isManagement);
+    if (volunteer.isManagement) params.append('isManagement', 'true');
+    console.log('Llamando upcoming con params:', params.toString());
+    api.get(`/sessions/upcoming?${params.toString()}`).then(res => {
+      console.log('Sesiones upcoming:', res.data);
+      setUpcomingSessions(res.data ?? []);
+    }).catch((err) => { console.log('Error upcoming:', err); });
     api.get('/justifications/mine/anticipated').then(res => setMyAnticipated(res.data ?? [])).catch(() => {});
     api.get("/periods").then(r => {
       setPeriods(r.data);

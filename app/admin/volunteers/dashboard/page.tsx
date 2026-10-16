@@ -96,7 +96,10 @@ export default function VolunteerDashboard() {
       const vol = volRes.data;
       setVolunteer(vol);
 
-      const sesRes = await api.get(`/sessions/upcoming${vol.module?.id ? `?moduleId=${vol.module.id}` : ''}`);
+      const params = new URLSearchParams();
+      if (vol.module?.id) params.append('moduleId', String(vol.module.id));
+      if (vol.isManagement) params.append('isManagement', 'true');
+      const sesRes = await api.get(`/sessions/upcoming?${params.toString()}`);
       console.log('Sesiones próximas:', sesRes.data);
       setSessions(sesRes.data ?? []);
 
